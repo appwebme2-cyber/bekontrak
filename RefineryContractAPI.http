@@ -1,0 +1,6 @@
+@RefineryContractAPI_HostAddress = http://localhost:5152
+
+GET {{RefineryContractAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

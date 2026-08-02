@@ -1,0 +1,129 @@
+{
+  "Files": [
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\KTR001\\f8af2d38-53e9-411d-90e0-3c92d7462b16.png",
+      "PackagePath": "staticwebassets\\uploads\\KTR001\\f8af2d38-53e9-411d-90e0-3c92d7462b16.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\amendments\\005f9b94-f02d-4c26-8e90-b2ca9882d598.png",
+      "PackagePath": "staticwebassets\\uploads\\amendments\\005f9b94-f02d-4c26-8e90-b2ca9882d598.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\amendments\\0e802e6d-7ca3-45d3-9c76-37352d47b2f1.png",
+      "PackagePath": "staticwebassets\\uploads\\amendments\\0e802e6d-7ca3-45d3-9c76-37352d47b2f1.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\amendments\\44cb70af-84d7-4038-b30d-8dca2f722370.pdf",
+      "PackagePath": "staticwebassets\\uploads\\amendments\\44cb70af-84d7-4038-b30d-8dca2f722370.pdf"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\amendments\\b798d45d-7413-4faf-9a83-b7c1dc0ad495.jpg",
+      "PackagePath": "staticwebassets\\uploads\\amendments\\b798d45d-7413-4faf-9a83-b7c1dc0ad495.jpg"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\contracts\\2576b4ba-161e-428d-b6c3-c267947f435d.jpg",
+      "PackagePath": "staticwebassets\\uploads\\contracts\\2576b4ba-161e-428d-b6c3-c267947f435d.jpg"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\contracts\\384d05ee-4c39-4e04-8115-6cb25ac87ecb.jpg",
+      "PackagePath": "staticwebassets\\uploads\\contracts\\384d05ee-4c39-4e04-8115-6cb25ac87ecb.jpg"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\contracts\\7f00f886-167e-48e3-8c05-3e94f8440b9a.pdf",
+      "PackagePath": "staticwebassets\\uploads\\contracts\\7f00f886-167e-48e3-8c05-3e94f8440b9a.pdf"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\contracts\\bd0cedf1-8e7d-4be4-8817-76aa9be13d5a.pdf",
+      "PackagePath": "staticwebassets\\uploads\\contracts\\bd0cedf1-8e7d-4be4-8817-76aa9be13d5a.pdf"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\contracts\\c3043250-af89-4f59-9e91-193bbbddf6ca.png",
+      "PackagePath": "staticwebassets\\uploads\\contracts\\c3043250-af89-4f59-9e91-193bbbddf6ca.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\contracts\\dff6d6b4-89cc-4fbf-acd0-1522fe9a7d9a.png",
+      "PackagePath": "staticwebassets\\uploads\\contracts\\dff6d6b4-89cc-4fbf-acd0-1522fe9a7d9a.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\padi-documents\\8ecd936b-f252-460b-96c8-acdbc89e4eee.docx",
+      "PackagePath": "staticwebassets\\uploads\\padi-documents\\8ecd936b-f252-460b-96c8-acdbc89e4eee.docx"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\padi-documents\\c88e9820-736c-43e4-a9b2-43088011ed8c.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\padi-documents\\c88e9820-736c-43e4-a9b2-43088011ed8c.jpeg"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-documents\\06fc8196-41da-4414-919a-b22b9365c321.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-documents\\06fc8196-41da-4414-919a-b22b9365c321.jpeg"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-documents\\0ab3649e-d0d7-40fe-bbc4-6e12e005f6a2.png",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-documents\\0ab3649e-d0d7-40fe-bbc4-6e12e005f6a2.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-documents\\261c9f8a-dbb6-4da5-ac4b-89f82640de95.png",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-documents\\261c9f8a-dbb6-4da5-ac4b-89f82640de95.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-documents\\3dd3c828-3e02-4010-bf57-169c5b7127c1.pdf",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-documents\\3dd3c828-3e02-4010-bf57-169c5b7127c1.pdf"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-documents\\9298635a-680b-438f-afc3-49e077feab03.png",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-documents\\9298635a-680b-438f-afc3-49e077feab03.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-documents\\dc464091-2f34-479b-9d04-b7ab04b6e54d.pdf",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-documents\\dc464091-2f34-479b-9d04-b7ab04b6e54d.pdf"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-documents\\f7597c43-313d-43ca-a09e-481b39dba66c.jpg",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-documents\\f7597c43-313d-43ca-a09e-481b39dba66c.jpg"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-documents\\fe3300f3-14da-4130-a5d6-983f4a920bad.png",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-documents\\fe3300f3-14da-4130-a5d6-983f4a920bad.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-memo\\480006ee-4d55-48e0-a672-900970c18b0e.pdf",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-memo\\480006ee-4d55-48e0-a672-900970c18b0e.pdf"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-memo\\50a3fd8a-ff34-4d71-acb2-65615c75fe2f.png",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-memo\\50a3fd8a-ff34-4d71-acb2-65615c75fe2f.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-memo\\62d97a37-ec2b-4cf6-aedd-eac005272dc6.png",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-memo\\62d97a37-ec2b-4cf6-aedd-eac005272dc6.png"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-memo\\6af213a1-8ed6-4330-a107-096363ae5101.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-memo\\6af213a1-8ed6-4330-a107-096363ae5101.jpeg"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-memo\\6d84505c-c6c2-4e20-adfc-2b3f111f4ba8.jpg",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-memo\\6d84505c-c6c2-4e20-adfc-2b3f111f4ba8.jpg"
+    },
+    {
+      "Id": "D:\\RingPro\\RefineryContractAPI\\wwwroot\\uploads\\tagihan-memo\\6ff66e90-688b-48fd-85be-d9dffc0313e0.jpg",
+      "PackagePath": "staticwebassets\\uploads\\tagihan-memo\\6ff66e90-688b-48fd-85be-d9dffc0313e0.jpg"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.RefineryContractAPI.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.RefineryContractAPI.props",
+      "PackagePath": "build\\RefineryContractAPI.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.RefineryContractAPI.props",
+      "PackagePath": "buildMultiTargeting\\RefineryContractAPI.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.RefineryContractAPI.props",
+      "PackagePath": "buildTransitive\\RefineryContractAPI.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
