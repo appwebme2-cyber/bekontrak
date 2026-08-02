@@ -97,6 +97,47 @@ public class AuthController : ControllerBase
         return Ok(new { message = "User berhasil ditambahkan.", id = user.Id });
     }
 
+    // ==================== SEED ADMIN (migrasi) ====================
+    // Hanya aktif jika env var SEED_ADMIN_TOKEN diset di Railway.
+    // Hanya bisa dipakai sekali saat DB benar-benar kosong (0 user).
+    // Setelah berhasil login, hapus SEED_ADMIN_TOKEN dari Railway env vars.
+    [HttpPost("seed-admin")]
+    public async Task<IActionResult> SeedAdmin([FromBody] SeedAdminDto dto)
+    {
+        var seedToken = _config["SEED_ADMIN_TOKEN"];
+        if (string.IsNullOrEmpty(seedToken))
+            return NotFound(new { message = "Endpoint ini tidak aktif." });
+
+        if (dto.SeedToken != seedToken)
+            return Unauthorized(new { message = "Seed token tidak valid." });
+
+        var hasUsers = await _context.Profiles.AnyAsync();
+        if (hasUsers)
+            return BadRequest(new { message = "Database sudah ada user. Endpoint ini hanya untuk DB kosong." });
+
+        var admin = new Profile
+        {
+            Email = dto.Email,
+            FullName = dto.FullName ?? "Administrator",
+            Role = "admin",
+            IsActive = true,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+        };
+
+        _context.Profiles.Add(admin);
+        await _context.SaveChangesAsync();
+
+        var token = GenerateToken(admin);
+        return Ok(new
+        {
+            message = "Admin berhasil dibuat. Segera hapus SEED_ADMIN_TOKEN dari Railway env vars!",
+            token,
+            id = admin.Id,
+            email = admin.Email,
+            role = admin.Role
+        });
+    }
+
     private string GenerateToken(Profile user)
     {
         var jwtSettings = _config.GetSection("JwtSettings");
