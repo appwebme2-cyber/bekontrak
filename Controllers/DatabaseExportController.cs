@@ -119,34 +119,180 @@ public class DatabaseExportController : ControllerBase
         using (var reader = new StreamReader(file.OpenReadStream(), new UTF8Encoding(false)))
             sqlContent = await reader.ReadToEndAsync();
 
-        // Hapus komentar baris tunggal sebelum parsing
-        var lines = sqlContent.Split('\n')
-            .Select(l => l.Contains("--") ? l[..l.IndexOf("--")] : l);
-        var cleanSql = string.Join('\n', lines).Trim();
-
-        if (string.IsNullOrWhiteSpace(cleanSql))
-            return BadRequest(new { message = "File SQL kosong atau hanya berisi komentar." });
+        var statements = SplitSqlStatements(sqlContent);
+        if (statements.Count == 0)
+            return BadRequest(new { message = "File SQL kosong atau tidak valid." });
 
         await using var conn = new NpgsqlConnection(connStr);
         await conn.OpenAsync();
 
-        await using var tx = await conn.BeginTransactionAsync();
-        try
-        {
-            await using var cmd = new NpgsqlCommand(cleanSql, conn, tx);
-            cmd.CommandTimeout = 600;
-            await cmd.ExecuteNonQueryAsync();
-            await tx.CommitAsync();
+        // Ambil semua kolom yang ada di DB tujuan
+        var tableColumns = await GetAllTableColumnsAsync(conn);
 
-            _logger.LogInformation("SQL import berhasil: {File} ({Size} bytes)", file.FileName, file.Length);
-            return Ok(new { message = $"Import berhasil. File: {file.FileName} ({file.Length / 1024} KB)" });
-        }
-        catch (Exception ex)
+        int success = 0, adapted = 0, skipped = 0;
+        var skippedErrors = new List<string>();
+
+        foreach (var stmt in statements)
         {
-            await tx.RollbackAsync();
-            _logger.LogError(ex, "SQL import gagal: {File}", file.FileName);
-            return StatusCode(500, new { message = $"Import gagal: {ex.Message}" });
+            var finalStmt = AdaptInsertStatement(stmt, tableColumns, out bool wasAdapted);
+            if (finalStmt == null) continue; // kosong setelah filter, lewati
+
+            try
+            {
+                await using var cmd = new NpgsqlCommand(finalStmt, conn);
+                cmd.CommandTimeout = 300;
+                await cmd.ExecuteNonQueryAsync();
+                if (wasAdapted) adapted++; else success++;
+            }
+            catch (Exception ex)
+            {
+                skipped++;
+                skippedErrors.Add(ex.Message.Split('\n')[0]);
+                _logger.LogWarning("Statement gagal: {Error}", ex.Message.Split('\n')[0]);
+            }
         }
+
+        _logger.LogInformation("Import selesai: {Ok} berhasil, {Adapted} diadaptasi, {Skip} gagal", success, adapted, skipped);
+
+        return Ok(new
+        {
+            message = $"Import selesai: {success + adapted} data masuk ({adapted} disesuaikan skema), {skipped} dilewati.",
+            success,
+            adapted,
+            skipped,
+            errors = skippedErrors.Distinct().Take(10).ToList()
+        });
+    }
+
+    // Cek kolom INSERT vs kolom di DB tujuan, filter yang tidak ada
+    private static string? AdaptInsertStatement(string stmt, Dictionary<string, HashSet<string>> tableColumns, out bool wasAdapted)
+    {
+        wasAdapted = false;
+        var match = System.Text.RegularExpressions.Regex.Match(stmt,
+            @"^INSERT\s+INTO\s+""?(\w+)""?\s*\(([^)]+)\)\s*VALUES\s*\((.+)\)(.*)?$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+
+        if (!match.Success) return stmt; // bukan INSERT, eksekusi apa adanya
+
+        var tableName = match.Groups[1].Value;
+        if (!tableColumns.TryGetValue(tableName, out var targetCols)) return stmt;
+
+        var sourceCols = match.Groups[2].Value
+            .Split(',')
+            .Select(c => c.Trim().Trim('"'))
+            .ToList();
+
+        var values = ParseSqlValueList(match.Groups[3].Value);
+        var suffix = match.Groups[4].Value.Trim();
+
+        if (sourceCols.Count != values.Count) return stmt;
+
+        // Filter hanya kolom yang ada di tabel tujuan
+        var pairs = sourceCols.Zip(values)
+            .Where(p => targetCols.Contains(p.First))
+            .ToList();
+
+        if (pairs.Count == 0) return null; // tidak ada kolom yang cocok sama sekali
+        if (pairs.Count == sourceCols.Count) return stmt; // semua cocok, tidak perlu adaptasi
+
+        wasAdapted = true;
+        var newCols = string.Join(", ", pairs.Select(p => $"\"{p.First}\""));
+        var newVals = string.Join(", ", pairs.Select(p => p.Second));
+        var onConflict = suffix.Length > 0 ? $" {suffix}" : " ON CONFLICT DO NOTHING";
+        return $"INSERT INTO \"{tableName}\" ({newCols}) VALUES ({newVals}){onConflict}";
+    }
+
+    private static async Task<Dictionary<string, HashSet<string>>> GetAllTableColumnsAsync(NpgsqlConnection conn)
+    {
+        var result = new Dictionary<string, HashSet<string>>();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'", conn);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var tbl = reader.GetString(0);
+            var col = reader.GetString(1);
+            if (!result.ContainsKey(tbl)) result[tbl] = new HashSet<string>();
+            result[tbl].Add(col);
+        }
+        return result;
+    }
+
+    private static List<string> ParseSqlValueList(string valuesPart)
+    {
+        var values = new List<string>();
+        var current = new StringBuilder();
+        bool inString = false;
+        int depth = 0;
+
+        for (int i = 0; i < valuesPart.Length; i++)
+        {
+            char c = valuesPart[i];
+            if (c == '\'' && !inString)
+            {
+                inString = true;
+                current.Append(c);
+            }
+            else if (c == '\'' && inString)
+            {
+                current.Append(c);
+                if (i + 1 < valuesPart.Length && valuesPart[i + 1] == '\'') { current.Append(valuesPart[++i]); }
+                else inString = false;
+            }
+            else if (!inString && (c == '(' || c == '[')) { depth++; current.Append(c); }
+            else if (!inString && (c == ')' || c == ']')) { depth--; current.Append(c); }
+            else if (!inString && depth == 0 && c == ',')
+            {
+                values.Add(current.ToString().Trim());
+                current.Clear();
+            }
+            else current.Append(c);
+        }
+        if (current.Length > 0) values.Add(current.ToString().Trim());
+        return values;
+    }
+
+    private static List<string> SplitSqlStatements(string sql)
+    {
+        var statements = new List<string>();
+        var current = new System.Text.StringBuilder();
+        bool inSingleQuote = false;
+        bool inDollarQuote = false;
+
+        var lines = sql.Split('\n');
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+
+            // Lewati baris komentar
+            if (trimmed.StartsWith("--")) continue;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+
+                if (!inDollarQuote && c == '\'' && (i == 0 || line[i - 1] != '\\'))
+                    inSingleQuote = !inSingleQuote;
+
+                current.Append(c);
+
+                if (!inSingleQuote && !inDollarQuote && c == ';')
+                {
+                    var stmt = current.ToString().Trim().TrimEnd(';').Trim();
+                    if (!string.IsNullOrWhiteSpace(stmt))
+                        statements.Add(stmt);
+                    current.Clear();
+                }
+            }
+            current.Append('\n');
+        }
+
+        // Statement terakhir tanpa titik koma
+        var last = current.ToString().Trim();
+        if (!string.IsNullOrWhiteSpace(last))
+            statements.Add(last);
+
+        return statements;
     }
 
     private static async Task<List<string>> GetTablesAsync(NpgsqlConnection conn)
