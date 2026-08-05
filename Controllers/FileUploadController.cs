@@ -57,6 +57,39 @@ public class FileUploadController : ControllerBase
         });
     }
 
+    [HttpGet("list")]
+    [AllowAnonymous]
+    public IActionResult ListFiles([FromQuery] string? folder = null)
+    {
+        var uploadsRoot = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads");
+        var searchPath = folder != null
+            ? Path.Combine(uploadsRoot, folder)
+            : uploadsRoot;
+
+        if (!Directory.Exists(searchPath))
+            return Ok(new { total = 0, files = Array.Empty<object>() });
+
+        var files = Directory.GetFiles(searchPath, "*.*", SearchOption.AllDirectories)
+            .Select(f =>
+            {
+                var info = new FileInfo(f);
+                var relativePath = f.Replace(uploadsRoot, "").Replace("\\", "/").TrimStart('/');
+                return new
+                {
+                    name = info.Name,
+                    folder = Path.GetRelativePath(uploadsRoot, info.DirectoryName!).Replace("\\", "/"),
+                    url = $"/uploads/{relativePath}",
+                    size_kb = Math.Round(info.Length / 1024.0, 1),
+                    last_modified = info.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss")
+                };
+            })
+            .OrderBy(f => f.folder)
+            .ThenBy(f => f.name)
+            .ToList();
+
+        return Ok(new { total = files.Count, files });
+    }
+
     [HttpDelete]
     public IActionResult Delete([FromQuery] string path)
     {

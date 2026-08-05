@@ -31,6 +31,40 @@ public class KonfigurasiController : ControllerBase
         return Ok(list);
     }
 
+    [HttpPost]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> Create([FromBody] CreateKonfigurasiDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.NamaSetting))
+            return BadRequest(new { message = "NamaSetting tidak boleh kosong." });
+
+        var exists = await _context.KonfigurasiSistems
+            .AnyAsync(k => k.NamaSetting == dto.NamaSetting);
+        if (exists)
+            return Conflict(new { message = $"Konfigurasi '{dto.NamaSetting}' sudah ada. Gunakan PUT untuk update." });
+
+        var config = new RefineryContractAPI.Models.KonfigurasiSistem
+        {
+            IdSetting = Guid.NewGuid().ToString(),
+            NamaSetting = dto.NamaSetting,
+            NilaiSetting = dto.NilaiSetting,
+            Deskripsi = dto.Deskripsi,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.KonfigurasiSistems.Add(config);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetAll), new KonfigurasiDto
+        {
+            IdSetting = config.IdSetting,
+            NamaSetting = config.NamaSetting,
+            NilaiSetting = config.NilaiSetting,
+            Deskripsi = config.Deskripsi,
+            UpdatedAt = config.UpdatedAt
+        });
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateKonfigurasiDto dto)
     {

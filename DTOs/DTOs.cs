@@ -355,6 +355,13 @@ public class UpdateKonfigurasiDto
     public string NilaiSetting { get; set; } = string.Empty;
 }
 
+public class CreateKonfigurasiDto
+{
+    public string NamaSetting { get; set; } = string.Empty;
+    public string NilaiSetting { get; set; } = string.Empty;
+    public string? Deskripsi { get; set; }
+}
+
 // ===================== PROGRESS LUMPSUM =====================
 public class ProgressLumpsumDto
 {
