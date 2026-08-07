@@ -135,6 +135,7 @@ public class AppDbContext : DbContext
             e.Property(p => p.JudulKontrak).HasColumnName("judul_kontrak");
             e.Property(p => p.NoDokumenKontrak).HasColumnName("no_dokumen_kontrak");
             e.Property(p => p.NoPoPr).HasColumnName("no_po_pr");
+            e.Property(p => p.NoIrkap).HasColumnName("no_irkap");
             e.Property(p => p.DireksiPekerjaan).HasColumnName("direksi_pekerjaan");
             e.Property(p => p.ProgramKerja).HasColumnName("program_kerja");
             e.Property(p => p.Planner).HasColumnName("planner");

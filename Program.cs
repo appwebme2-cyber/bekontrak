@@ -95,6 +95,23 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+
+    // Tambah kolom yang ditambahkan via migration tapi belum ada di DB
+    // (EnsureCreated tidak menjalankan migration, hanya buat schema awal)
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            ALTER TABLE kontrak ADD COLUMN IF NOT EXISTS no_irkap TEXT;
+            ALTER TABLE kontrak ADD COLUMN IF NOT EXISTS s_curve_data TEXT;
+            ALTER TABLE kontrak ADD COLUMN IF NOT EXISTS tanggal_mpl INTEGER;
+            ALTER TABLE kontrak ADD COLUMN IF NOT EXISTS tanggal_mpa INTEGER;
+            ALTER TABLE kontrak ADD COLUMN IF NOT EXISTS masa_pemeliharaan_hari INTEGER;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Column migration warning: {ex.Message}");
+    }
 }
 
 // ==================== MIDDLEWARE ====================
