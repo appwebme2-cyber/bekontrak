@@ -102,6 +102,19 @@ public class ProfileController : ControllerBase
         if (!string.IsNullOrEmpty(dto.Role))
             profile.Role = dto.Role;
 
+        if (!string.IsNullOrEmpty(dto.Email))
+        {
+            if (!System.Net.Mail.MailAddress.TryCreate(dto.Email, out _))
+                return BadRequest(new { message = "Format email tidak valid." });
+
+            var emailTaken = await _context.Profiles
+                .AnyAsync(p => p.Email == dto.Email && p.Id != id);
+            if (emailTaken)
+                return Conflict(new { message = "Email sudah digunakan oleh pengguna lain." });
+
+            profile.Email = dto.Email;
+        }
+
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

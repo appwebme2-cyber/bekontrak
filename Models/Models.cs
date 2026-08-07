@@ -102,6 +102,7 @@ public class Kontrak
     public string JudulKontrak { get; set; } = string.Empty;
     public string? NoDokumenKontrak { get; set; }
     public string? NoPoPr { get; set; }
+    public string? NoIrkap { get; set; }
     public string? DireksiPekerjaan { get; set; }
     public string? ProgramKerja { get; set; }
     public string? Planner { get; set; }

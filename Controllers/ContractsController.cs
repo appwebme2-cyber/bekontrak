@@ -84,6 +84,7 @@ public class ContractsController : ControllerBase
             JudulKontrak = dto.JudulKontrak,
             NoDokumenKontrak = dto.NoDokumenKontrak,
             NoPoPr = dto.NoPoPr,
+            NoIrkap = dto.NoIrkap,
             DireksiPekerjaan = dto.DireksiPekerjaan,
             ProgramKerja = dto.ProgramKerja,
             Planner = dto.Planner,
@@ -136,6 +137,7 @@ public class ContractsController : ControllerBase
         kontrak.JudulKontrak = dto.JudulKontrak;
         kontrak.NoDokumenKontrak = dto.NoDokumenKontrak;
         kontrak.NoPoPr = dto.NoPoPr;
+        kontrak.NoIrkap = dto.NoIrkap;
         kontrak.DireksiPekerjaan = dto.DireksiPekerjaan;
         kontrak.ProgramKerja = dto.ProgramKerja;
         kontrak.Planner = dto.Planner;
@@ -222,6 +224,7 @@ public class ContractsController : ControllerBase
         JudulKontrak = k.JudulKontrak,
         NoDokumenKontrak = k.NoDokumenKontrak,
         NoPoPr = k.NoPoPr,
+        NoIrkap = k.NoIrkap,
         DireksiPekerjaan = k.DireksiPekerjaan,
         ProgramKerja = k.ProgramKerja,
         Planner = k.Planner,

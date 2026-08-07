@@ -209,6 +209,10 @@ namespace RefineryContractAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("no_po_pr");
 
+                    b.Property<string>("NoIrkap")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("no_irkap");
+
                     b.Property<double?>("ProgressActual")
                         .HasColumnType("float")
                         .HasColumnName("progress_actual");

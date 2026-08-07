@@ -120,6 +120,7 @@ public class KontrakDto
     public string JudulKontrak { get; set; } = string.Empty;
     public string? NoDokumenKontrak { get; set; }
     public string? NoPoPr { get; set; }
+    public string? NoIrkap { get; set; }
     public string? DireksiPekerjaan { get; set; }
     public string? ProgramKerja { get; set; }
     public string? Planner { get; set; }
@@ -172,6 +173,7 @@ public class CreateKontrakDto
     public string JudulKontrak { get; set; } = string.Empty;
     public string? NoDokumenKontrak { get; set; }
     public string? NoPoPr { get; set; }
+    public string? NoIrkap { get; set; }
     public string? DireksiPekerjaan { get; set; }
     public string? ProgramKerja { get; set; }
     public string? Planner { get; set; }
@@ -472,6 +474,7 @@ public class UpdateRoleDto
 public class AdminUpdateUserDto
 {
     public string? FullName { get; set; }
+    public string? Email { get; set; }
     public string? Role { get; set; }
 }
 
