@@ -138,6 +138,29 @@ public class AuthController : ControllerBase
         });
     }
 
+    // ==================== CHANGE PASSWORD ====================
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var user = await _context.Profiles.FindAsync(userId);
+
+        if (user == null)
+            return NotFound(new { message = "User tidak ditemukan" });
+
+        if (!BCrypt.Net.BCrypt.Verify(dto.OldPassword, user.PasswordHash))
+            return BadRequest(new { message = "Password lama tidak sesuai" });
+
+        if (dto.NewPassword.Length < 6)
+            return BadRequest(new { message = "Password baru minimal 6 karakter" });
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Password berhasil diubah" });
+    }
+
     private string GenerateToken(Profile user)
     {
         var jwtSettings = _config.GetSection("JwtSettings");

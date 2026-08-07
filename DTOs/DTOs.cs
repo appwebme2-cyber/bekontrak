@@ -32,6 +32,12 @@ public class SeedAdminDto
     public string? FullName { get; set; }
 }
 
+public class ChangePasswordDto
+{
+    public string OldPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
 // ===================== VENDOR =====================
 public class VendorDto
 {
