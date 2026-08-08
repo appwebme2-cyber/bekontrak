@@ -18,7 +18,6 @@ public class R2StorageService
             ServiceURL = r2["EndpointUrl"],
             ForcePathStyle = true,
             AuthenticationRegion = "auto",
-            DisablePayloadSigning = true,
         };
 
         _s3 = new AmazonS3Client(
@@ -26,16 +25,27 @@ public class R2StorageService
             s3Config);
     }
 
+    private static readonly HttpClient _httpClient = new();
+
     public async Task<string> UploadAsync(Stream stream, string key, string contentType)
     {
-        var req = new PutObjectRequest
+        // Use pre-signed URL to avoid STREAMING-AWS4-HMAC-SHA256-PAYLOAD
+        // which Cloudflare R2 does not support
+        var preSignRequest = new GetPreSignedUrlRequest
         {
             BucketName = _bucket,
             Key        = key,
-            InputStream = stream,
-            ContentType = contentType,
+            Verb       = HttpVerb.PUT,
+            Expires    = DateTime.UtcNow.AddMinutes(10),
         };
-        await _s3.PutObjectAsync(req);
+
+        var presignedUrl = _s3.GetPreSignedURL(preSignRequest);
+
+        using var content = new StreamContent(stream);
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        var response = await _httpClient.PutAsync(presignedUrl, content);
+        response.EnsureSuccessStatusCode();
+
         return key;
     }
 
