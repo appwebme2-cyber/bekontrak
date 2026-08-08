@@ -44,8 +44,19 @@ public class FileUploadController : ControllerBase
         var safeFolder = string.IsNullOrWhiteSpace(folder) ? "general" : folder.Trim('/');
         var key        = $"{safeFolder}/{Guid.NewGuid()}{ext}";
 
-        using var stream = file.OpenReadStream();
-        await _r2.UploadAsync(stream, key, file.ContentType);
+        try
+        {
+            using var stream = file.OpenReadStream();
+            await _r2.UploadAsync(stream, key, file.ContentType);
+        }
+        catch (Amazon.S3.AmazonS3Exception ex)
+        {
+            return StatusCode(500, new { message = $"R2 error: {ex.ErrorCode} - {ex.Message}" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Upload failed: {ex.GetType().Name} - {ex.Message}" });
+        }
 
         var url = $"/api/FileUpload/file/{key}";
 
