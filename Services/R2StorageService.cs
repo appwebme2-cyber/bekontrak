@@ -17,9 +17,12 @@ public class R2StorageService
         {
             ServiceURL = r2["EndpointUrl"],
             ForcePathStyle = true,
+            AuthenticationRegion = "auto",
         };
 
-        _s3 = new AmazonS3Client(r2["AccessKeyId"], r2["SecretAccessKey"], s3Config);
+        _s3 = new AmazonS3Client(
+            new Amazon.Runtime.BasicAWSCredentials(r2["AccessKeyId"], r2["SecretAccessKey"]),
+            s3Config);
     }
 
     public async Task<string> UploadAsync(Stream stream, string key, string contentType)

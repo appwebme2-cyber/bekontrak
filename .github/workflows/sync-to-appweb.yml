@@ -1,0 +1,18 @@
+name: Sync to appwebme2-cyber
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to appwebme2-cyber/bekontrak
+        run: |
+          git remote add target https://x-access-token:${{ secrets.APPWEB_PAT }}@github.com/appwebme2-cyber/bekontrak.git
+          git push target main --force
