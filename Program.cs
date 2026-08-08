@@ -1,6 +1,8 @@
+using RefineryContractAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.OpenApi.Models;
 using RefineryContractAPI.Data;
 using System.Text;
@@ -31,9 +33,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtSettings["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                if (!string.IsNullOrEmpty(jti))
+                {
+                    var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                    var isBlacklisted = await db.TokenBlacklists.AnyAsync(t => t.Jti == jti);
+                    if (isBlacklisted)
+                        context.Fail("Token has been revoked");
+                }
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<R2StorageService>();
+builder.Services.AddSingleton<FileTokenService>();
 builder.Services.AddControllers();
 builder.Services.AddDirectoryBrowser();
 
@@ -106,6 +124,14 @@ using (var scope = app.Services.CreateScope())
             ALTER TABLE kontrak ADD COLUMN IF NOT EXISTS tanggal_mpl INTEGER;
             ALTER TABLE kontrak ADD COLUMN IF NOT EXISTS tanggal_mpa INTEGER;
             ALTER TABLE kontrak ADD COLUMN IF NOT EXISTS masa_pemeliharaan_hari INTEGER;
+            CREATE TABLE IF NOT EXISTS token_blacklist (
+                id SERIAL PRIMARY KEY,
+                jti TEXT NOT NULL UNIQUE,
+                expires_at TIMESTAMP NOT NULL,
+                revoked_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_token_blacklist_jti ON token_blacklist(jti);
+            DELETE FROM token_blacklist WHERE expires_at < NOW();
         ");
     }
     catch (Exception ex)

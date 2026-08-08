@@ -138,6 +138,42 @@ public class AuthController : ControllerBase
         });
     }
 
+    // ==================== LOGOUT (blacklist token) ====================
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        if (string.IsNullOrEmpty(jti))
+            return Ok(new { message = "Logged out" });
+
+        // Parse expiry from token to store accurate expiry
+        var authHeader = Request.Headers["Authorization"].ToString();
+        DateTime expiresAt = DateTime.UtcNow.AddHours(8);
+        if (authHeader.StartsWith("Bearer "))
+        {
+            var rawToken = authHeader["Bearer ".Length..];
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(rawToken))
+            {
+                var jwt = handler.ReadJwtToken(rawToken);
+                expiresAt = jwt.ValidTo;
+            }
+        }
+
+        var blacklistEntry = new RefineryContractAPI.Models.TokenBlacklist
+        {
+            Jti = jti,
+            ExpiresAt = expiresAt,
+            RevokedAt = DateTime.UtcNow
+        };
+
+        _context.TokenBlacklists.Add(blacklistEntry);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Logout berhasil" });
+    }
+
     // ==================== CHANGE PASSWORD ====================
     [HttpPost("change-password")]
     [Authorize]
@@ -170,6 +206,7 @@ public class AuthController : ControllerBase
 
         var claims = new[]
         {
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role),

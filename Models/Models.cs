@@ -420,3 +420,11 @@ public class SlaTagihan
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
+public class TokenBlacklist
+{
+    [Key]
+    public int Id { get; set; }
+    public string Jti { get; set; } = "";
+    public DateTime ExpiresAt { get; set; }
+    public DateTime RevokedAt { get; set; } = DateTime.UtcNow;
+}

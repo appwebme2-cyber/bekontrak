@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Controllers;
 
@@ -8,97 +9,101 @@ namespace RefineryContractAPI.Controllers;
 [Authorize]
 public class FileUploadController : ControllerBase
 {
-    private readonly IWebHostEnvironment _env;
+    private readonly R2StorageService _r2;
+    private readonly FileTokenService _fileTokens;
 
-    public FileUploadController(IWebHostEnvironment env)
+    public FileUploadController(R2StorageService r2, FileTokenService fileTokens)
     {
-        _env = env;
+        _r2 = r2;
+        _fileTokens = fileTokens;
     }
 
+    // ==================== UPLOAD ====================
     [HttpPost]
     public async Task<IActionResult> Upload([FromForm] string folder, IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "File tidak boleh kosong" });
 
-        var allowedTypes = new[] {
+        var allowedTypes = new[]
+        {
             "application/pdf", "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/vnd.ms-excel",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "image/jpeg", "image/png"
+            "image/jpeg", "image/png", "image/jpg"
         };
 
         if (!allowedTypes.Contains(file.ContentType))
             return BadRequest(new { message = "Tipe file tidak diizinkan" });
 
-        var uploadsFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads", folder ?? "general");
-        if (!Directory.Exists(uploadsFolder))
-            Directory.CreateDirectory(uploadsFolder);
+        if (file.Length > 20 * 1024 * 1024)
+            return BadRequest(new { message = "Ukuran file maksimal 20MB" });
 
-        var ext = Path.GetExtension(file.FileName);
-        var uniqueFileName = $"{Guid.NewGuid()}{ext}";
-        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+        var ext        = Path.GetExtension(file.FileName);
+        var safeFolder = string.IsNullOrWhiteSpace(folder) ? "general" : folder.Trim('/');
+        var key        = $"{safeFolder}/{Guid.NewGuid()}{ext}";
 
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
+        using var stream = file.OpenReadStream();
+        await _r2.UploadAsync(stream, key, file.ContentType);
 
-        var fileUrl = $"/uploads/{folder}/{uniqueFileName}";
+        var url = $"/api/FileUpload/file/{key}";
 
         return Ok(new
         {
-            url = fileUrl,
-            path = filePath,
+            url,
+            key,
             name = file.FileName,
             size = file.Length,
             type = file.ContentType
         });
     }
 
-    [HttpGet("list")]
-    [AllowAnonymous]
-    public IActionResult ListFiles([FromQuery] string? folder = null)
+    // ==================== DOWNLOAD TOKEN ====================
+    [HttpGet("download-token")]
+    public IActionResult GetDownloadToken([FromQuery] string key)
     {
-        var uploadsRoot = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads");
-        var searchPath = folder != null
-            ? Path.Combine(uploadsRoot, folder)
-            : uploadsRoot;
-
-        if (!Directory.Exists(searchPath))
-            return Ok(new { total = 0, files = Array.Empty<object>() });
-
-        var files = Directory.GetFiles(searchPath, "*.*", SearchOption.AllDirectories)
-            .Select(f =>
-            {
-                var info = new FileInfo(f);
-                var relativePath = f.Replace(uploadsRoot, "").Replace("\\", "/").TrimStart('/');
-                return new
-                {
-                    name = info.Name,
-                    folder = Path.GetRelativePath(uploadsRoot, info.DirectoryName!).Replace("\\", "/"),
-                    url = $"/uploads/{relativePath}",
-                    size_kb = Math.Round(info.Length / 1024.0, 1),
-                    last_modified = info.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss")
-                };
-            })
-            .OrderBy(f => f.folder)
-            .ThenBy(f => f.name)
-            .ToList();
-
-        return Ok(new { total = files.Count, files });
+        if (string.IsNullOrEmpty(key)) return BadRequest();
+        var token = _fileTokens.CreateToken(key);
+        return Ok(new { token });
     }
 
+    // ==================== SERVE (proxy) ====================
+    [HttpGet("file/{*key}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetFile(string key, [FromQuery] string t)
+    {
+        if (string.IsNullOrEmpty(key)) return BadRequest();
+
+        if (string.IsNullOrEmpty(t) || !_fileTokens.IsValid(t, key))
+            return Unauthorized(new { message = "Token akses tidak valid atau sudah kadaluarsa" });
+
+        try
+        {
+            var (stream, contentType, contentLength) = await _r2.GetAsync(key);
+            Response.ContentLength = contentLength;
+            return File(stream, contentType, enableRangeProcessing: true);
+        }
+        catch (Amazon.S3.AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NoContent
+                                                   || ex.StatusCode == System.Net.HttpStatusCode.NotFound
+                                                   || ex.ErrorCode == "NoSuchKey")
+        {
+            return NotFound();
+        }
+    }
+
+    // ==================== DELETE ====================
     [HttpDelete]
-    public IActionResult Delete([FromQuery] string path)
+    public async Task<IActionResult> Delete([FromQuery] string path)
     {
         if (string.IsNullOrEmpty(path)) return BadRequest();
 
-        var fullPath = Path.Combine(_env.WebRootPath ?? "wwwroot", path.TrimStart('/'));
-        if (System.IO.File.Exists(fullPath))
-            System.IO.File.Delete(fullPath);
+        var marker = "/api/FileUpload/file/";
+        var key = path.Contains(marker)
+            ? path[(path.IndexOf(marker) + marker.Length)..]
+            : path.TrimStart('/');
 
+        await _r2.DeleteAsync(key);
         return Ok(new { message = "File berhasil dihapus" });
     }
 }

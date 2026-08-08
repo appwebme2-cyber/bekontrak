@@ -24,8 +24,9 @@ public class AppDbContext : DbContext
     public DbSet<DireksiPekerjaan> DireksiPekerjaans { get; set; }
     public DbSet<ProgramKerja> ProgramKerjas { get; set; }
     public DbSet<Planner> Planners { get; set; }
+    public DbSet<TokenBlacklist> TokenBlacklists { get; set; }
 
-    
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -328,5 +329,12 @@ public class AppDbContext : DbContext
             e.Property(p => p.UpdatedAt).HasColumnName("updated_at");
         });
 
+        modelBuilder.Entity<TokenBlacklist>().ToTable("token_blacklist");
+        modelBuilder.Entity<TokenBlacklist>(e => {
+            e.Property(p => p.Id).HasColumnName("id");
+            e.Property(p => p.Jti).HasColumnName("jti");
+            e.Property(p => p.ExpiresAt).HasColumnName("expires_at");
+            e.Property(p => p.RevokedAt).HasColumnName("revoked_at");
+        });
     }
 }
