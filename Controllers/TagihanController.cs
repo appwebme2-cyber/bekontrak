@@ -220,9 +220,11 @@ public class TagihanController : ControllerBase
         var s = status.Trim().ToUpperInvariant();
         return s switch
         {
+            "BA JOINT INSPECTION" or "BA_JOINT_INSPECTION" => "BA_JOINT_INSPECTION",
+            "BA COMMISSIONING" or "BA_COMMISSIONING" => "BA_COMMISSIONING",
+            "BA PENERIMAAN MATERIAL" or "BA_PENERIMAAN_MATERIAL" => "BA_PENERIMAAN_MATERIAL",
             "LKP" => "LKP",
-            "PUNCHLIST" => "PUNCHLIST",
-            "BAST" => "BAST",
+            "BASTP" or "BAST" => "BASTP",
             "BAKP" or "BAPP" or "BAKP/BAPP" => "BAKP",
             "IVENDOR" or "I-VENDOR" or "SUBMIT I-VENDOR" or "SUBMIT IVENDOR" => "IVENDOR",
             "SA" => "SA",
@@ -237,15 +239,17 @@ public class TagihanController : ControllerBase
     {
         switch (kode)
         {
-            case "LKP":        sla.TglMasukLkp        ??= when; break;
-            case "PUNCHLIST":  sla.TglMasukPunchlist  ??= when; break;
-            case "BAST":       sla.TglMasukBast       ??= when; break;
-            case "BAKP":       sla.TglMasukBakp       ??= when; break;
-            case "IVENDOR":    sla.TglMasukIvendor    ??= when; break;
-            case "SA":         sla.TglMasukSa         ??= when; break;
-            case "PA":         sla.TglMasukPa         ??= when; break;
-            case "VERIFIKASI": sla.TglMasukVerifikasi ??= when; break;
-            case "PAYMENT":    sla.TglMasukPayment    ??= when; break;
+            case "BA_JOINT_INSPECTION":    sla.TglMasukBaJointInspection    ??= when; break;
+            case "BA_COMMISSIONING":       sla.TglMasukBaCommissioning       ??= when; break;
+            case "BA_PENERIMAAN_MATERIAL": sla.TglMasukBaPenerimaanMaterial ??= when; break;
+            case "LKP":                    sla.TglMasukLkp                   ??= when; break;
+            case "BASTP":                  sla.TglMasukBast                  ??= when; break;
+            case "BAKP":                   sla.TglMasukBakp                  ??= when; break;
+            case "IVENDOR":                sla.TglMasukIvendor               ??= when; break;
+            case "SA":                     sla.TglMasukSa                    ??= when; break;
+            case "PA":                     sla.TglMasukPa                    ??= when; break;
+            case "VERIFIKASI":             sla.TglMasukVerifikasi            ??= when; break;
+            case "PAYMENT":                sla.TglMasukPayment               ??= when; break;
         }
     }
 
@@ -253,23 +257,27 @@ public class TagihanController : ControllerBase
     {
         switch (kode)
         {
-            case "LKP":        sla.TglSelesaiLkp        ??= when; break;
-            case "PUNCHLIST":  sla.TglSelesaiPunchlist  ??= when; break;
-            case "BAST":       sla.TglSelesaiBast       ??= when; break;
-            case "BAKP":       sla.TglSelesaiBakp       ??= when; break;
-            case "IVENDOR":    sla.TglSelesaiIvendor    ??= when; break;
-            case "SA":         sla.TglSelesaiSa         ??= when; break;
-            case "PA":         sla.TglSelesaiPa         ??= when; break;
-            case "VERIFIKASI": sla.TglSelesaiVerifikasi ??= when; break;
-            case "PAYMENT":    sla.TglSelesaiPayment    ??= when; break;
+            case "BA_JOINT_INSPECTION":    sla.TglSelesaiBaJointInspection    ??= when; break;
+            case "BA_COMMISSIONING":       sla.TglSelesaiBaCommissioning       ??= when; break;
+            case "BA_PENERIMAAN_MATERIAL": sla.TglSelesaiBaPenerimaanMaterial ??= when; break;
+            case "LKP":                    sla.TglSelesaiLkp                   ??= when; break;
+            case "BASTP":                  sla.TglSelesaiBast                  ??= when; break;
+            case "BAKP":                   sla.TglSelesaiBakp                  ??= when; break;
+            case "IVENDOR":                sla.TglSelesaiIvendor               ??= when; break;
+            case "SA":                     sla.TglSelesaiSa                    ??= when; break;
+            case "PA":                     sla.TglSelesaiPa                    ??= when; break;
+            case "VERIFIKASI":             sla.TglSelesaiVerifikasi            ??= when; break;
+            case "PAYMENT":                sla.TglSelesaiPayment               ??= when; break;
         }
     }
 
     private static SlaTagihanDto MapSlaToDto(SlaTagihan s) => new()
     {
         Id = s.Id, IdKontrak = s.IdKontrak, IdTagihan = s.IdTagihan,
+        TglMasukBaJointInspection = s.TglMasukBaJointInspection, TglSelesaiBaJointInspection = s.TglSelesaiBaJointInspection,
+        TglMasukBaCommissioning = s.TglMasukBaCommissioning, TglSelesaiBaCommissioning = s.TglSelesaiBaCommissioning,
+        TglMasukBaPenerimaanMaterial = s.TglMasukBaPenerimaanMaterial, TglSelesaiBaPenerimaanMaterial = s.TglSelesaiBaPenerimaanMaterial,
         TglMasukLkp = s.TglMasukLkp, TglSelesaiLkp = s.TglSelesaiLkp,
-        TglMasukPunchlist = s.TglMasukPunchlist, TglSelesaiPunchlist = s.TglSelesaiPunchlist,
         TglMasukBast = s.TglMasukBast, TglSelesaiBast = s.TglSelesaiBast,
         TglMasukBakp = s.TglMasukBakp, TglSelesaiBakp = s.TglSelesaiBakp,
         TglMasukIvendor = s.TglMasukIvendor, TglSelesaiIvendor = s.TglSelesaiIvendor,

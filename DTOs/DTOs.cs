@@ -547,42 +547,50 @@ public class SlaTagihanDto
     public string IdKontrak { get; set; } = string.Empty;
     public string? IdTagihan { get; set; }
  
-    // Tahap 1: LKP
+    // Tahap 1: BA Joint Inspection
+    public DateTime? TglMasukBaJointInspection { get; set; }
+    public DateTime? TglSelesaiBaJointInspection { get; set; }
+
+    // Tahap 2: BA Commissioning
+    public DateTime? TglMasukBaCommissioning { get; set; }
+    public DateTime? TglSelesaiBaCommissioning { get; set; }
+
+    // Tahap 3: BA Penerimaan Material
+    public DateTime? TglMasukBaPenerimaanMaterial { get; set; }
+    public DateTime? TglSelesaiBaPenerimaanMaterial { get; set; }
+
+    // Tahap 4: LKP
     public DateTime? TglMasukLkp { get; set; }
     public DateTime? TglSelesaiLkp { get; set; }
- 
-    // Tahap 2: PUNCHLIST
-    public DateTime? TglMasukPunchlist { get; set; }
-    public DateTime? TglSelesaiPunchlist { get; set; }
- 
-    // Tahap 3: BAST
+
+    // Tahap 5: BASTP (was BAST)
     public DateTime? TglMasukBast { get; set; }
     public DateTime? TglSelesaiBast { get; set; }
- 
-    // Tahap 4: BAKP
+
+    // Tahap 6: BAKP
     public DateTime? TglMasukBakp { get; set; }
     public DateTime? TglSelesaiBakp { get; set; }
- 
-    // Tahap 5: IVENDOR
+
+    // Tahap 7: IVENDOR
     public DateTime? TglMasukIvendor { get; set; }
     public DateTime? TglSelesaiIvendor { get; set; }
- 
-    // Tahap 6: SA
+
+    // Tahap 8: SA
     public DateTime? TglMasukSa { get; set; }
     public DateTime? TglSelesaiSa { get; set; }
- 
-    // Tahap 7: PA
+
+    // Tahap 9: PA
     public DateTime? TglMasukPa { get; set; }
     public DateTime? TglSelesaiPa { get; set; }
- 
-    // Tahap 8: VERIFIKASI
+
+    // Tahap 10: VERIFIKASI
     public DateTime? TglMasukVerifikasi { get; set; }
     public DateTime? TglSelesaiVerifikasi { get; set; }
- 
-    // Tahap 9: PAYMENT
+
+    // Tahap 11: PAYMENT
     public DateTime? TglMasukPayment { get; set; }
     public DateTime? TglSelesaiPayment { get; set; }
- 
+
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

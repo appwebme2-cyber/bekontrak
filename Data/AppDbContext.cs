@@ -93,10 +93,14 @@ public class AppDbContext : DbContext
             e.Property(p => p.Id).HasColumnName("id");
             e.Property(p => p.IdKontrak).HasColumnName("id_kontrak");
             e.Property(p => p.IdTagihan).HasColumnName("id_tagihan");
+            e.Property(p => p.TglMasukBaJointInspection).HasColumnName("tgl_masuk_ba_joint_inspection");
+            e.Property(p => p.TglSelesaiBaJointInspection).HasColumnName("tgl_selesai_ba_joint_inspection");
+            e.Property(p => p.TglMasukBaCommissioning).HasColumnName("tgl_masuk_ba_commissioning");
+            e.Property(p => p.TglSelesaiBaCommissioning).HasColumnName("tgl_selesai_ba_commissioning");
+            e.Property(p => p.TglMasukBaPenerimaanMaterial).HasColumnName("tgl_masuk_ba_penerimaan_material");
+            e.Property(p => p.TglSelesaiBaPenerimaanMaterial).HasColumnName("tgl_selesai_ba_penerimaan_material");
             e.Property(p => p.TglMasukLkp).HasColumnName("tgl_masuk_lkp");
             e.Property(p => p.TglSelesaiLkp).HasColumnName("tgl_selesai_lkp");
-            e.Property(p => p.TglMasukPunchlist).HasColumnName("tgl_masuk_punchlist");
-            e.Property(p => p.TglSelesaiPunchlist).HasColumnName("tgl_selesai_punchlist");
             e.Property(p => p.TglMasukBast).HasColumnName("tgl_masuk_bast");
             e.Property(p => p.TglSelesaiBast).HasColumnName("tgl_selesai_bast");
             e.Property(p => p.TglMasukBakp).HasColumnName("tgl_masuk_bakp");

@@ -12,6 +12,12 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ==================== REQUEST SIZE LIMIT ====================
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100MB
+});
+
 // ==================== DATABASE (PostgreSQL) ====================
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -132,6 +138,20 @@ using (var scope = app.Services.CreateScope())
             );
             CREATE INDEX IF NOT EXISTS idx_token_blacklist_jti ON token_blacklist(jti);
             DELETE FROM token_blacklist WHERE expires_at < NOW();
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_joint_inspection TIMESTAMP;
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_ba_joint_inspection TIMESTAMP;
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_commissioning TIMESTAMP;
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_ba_commissioning TIMESTAMP;
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_penerimaan_material TIMESTAMP;
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_ba_penerimaan_material TIMESTAMP;
+            INSERT INTO sla_setting (kode_tahap, batas_hari, warning_persen)
+            VALUES
+              ('BA_JOINT_INSPECTION',    7, 80),
+              ('BA_COMMISSIONING',       7, 80),
+              ('BA_PENERIMAAN_MATERIAL', 7, 80),
+              ('BASTP',                  7, 80)
+            ON CONFLICT (kode_tahap) DO NOTHING;
+            DELETE FROM sla_setting WHERE kode_tahap IN ('PUNCHLIST', 'BAST');
         ");
     }
     catch (Exception ex)

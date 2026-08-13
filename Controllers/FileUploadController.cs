@@ -20,6 +20,8 @@ public class FileUploadController : ControllerBase
 
     // ==================== UPLOAD ====================
     [HttpPost]
+    [RequestSizeLimit(100 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 100 * 1024 * 1024)]
     public async Task<IActionResult> Upload([FromForm] string folder, IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -37,8 +39,8 @@ public class FileUploadController : ControllerBase
         if (!allowedTypes.Contains(file.ContentType))
             return BadRequest(new { message = "Tipe file tidak diizinkan" });
 
-        if (file.Length > 20 * 1024 * 1024)
-            return BadRequest(new { message = "Ukuran file maksimal 20MB" });
+        if (file.Length > 100 * 1024 * 1024)
+            return BadRequest(new { message = "Ukuran file maksimal 100MB" });
 
         var ext        = Path.GetExtension(file.FileName);
         var safeFolder = string.IsNullOrWhiteSpace(folder) ? "general" : folder.Trim('/');
