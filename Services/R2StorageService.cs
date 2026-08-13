@@ -18,7 +18,7 @@ public class R2StorageService
             ServiceURL = r2["EndpointUrl"],
             ForcePathStyle = true,
             AuthenticationRegion = "auto",
-            DisablePayloadSigning = true,
+            
         };
 
         _s3 = new AmazonS3Client(
