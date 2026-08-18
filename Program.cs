@@ -1,4 +1,5 @@
 using RefineryContractAPI.Services;
+using RefineryContractAPI.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -138,6 +139,19 @@ using (var scope = app.Services.CreateScope())
             );
             CREATE INDEX IF NOT EXISTS idx_token_blacklist_jti ON token_blacklist(jti);
             DELETE FROM token_blacklist WHERE expires_at < NOW();
+            CREATE TABLE IF NOT EXISTS log_akses (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL DEFAULT '',
+                nama_user TEXT NOT NULL DEFAULT '',
+                role TEXT NOT NULL DEFAULT '',
+                menu TEXT NOT NULL DEFAULT '',
+                activity TEXT NOT NULL DEFAULT '',
+                detail TEXT,
+                ip_address TEXT,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_log_akses_created_at ON log_akses(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_log_akses_user_id ON log_akses(user_id);
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_joint_inspection TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_ba_joint_inspection TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_commissioning TIMESTAMP;
@@ -182,6 +196,7 @@ app.UseStaticFiles();
 app.UseCors("AllowReact");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AuditMiddleware>();
 app.MapControllers();
 
 app.Run();

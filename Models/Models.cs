@@ -436,3 +436,17 @@ public class TokenBlacklist
     public DateTime ExpiresAt { get; set; }
     public DateTime RevokedAt { get; set; } = DateTime.UtcNow;
 }
+
+public class LogAkses
+{
+    [Key]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string UserId { get; set; } = "";
+    public string NamaUser { get; set; } = "";
+    public string Role { get; set; } = "";
+    public string Menu { get; set; } = "";
+    public string Activity { get; set; } = "";
+    public string? Detail { get; set; }
+    public string? IpAddress { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}

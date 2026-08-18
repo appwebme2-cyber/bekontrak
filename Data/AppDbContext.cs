@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<ProgramKerja> ProgramKerjas { get; set; }
     public DbSet<Planner> Planners { get; set; }
     public DbSet<TokenBlacklist> TokenBlacklists { get; set; }
+    public DbSet<LogAkses> LogAkses { get; set; }
 
 
 
@@ -339,6 +340,19 @@ public class AppDbContext : DbContext
             e.Property(p => p.Jti).HasColumnName("jti");
             e.Property(p => p.ExpiresAt).HasColumnName("expires_at");
             e.Property(p => p.RevokedAt).HasColumnName("revoked_at");
+        });
+
+        modelBuilder.Entity<LogAkses>().ToTable("log_akses");
+        modelBuilder.Entity<LogAkses>(e => {
+            e.Property(p => p.Id).HasColumnName("id");
+            e.Property(p => p.UserId).HasColumnName("user_id");
+            e.Property(p => p.NamaUser).HasColumnName("nama_user");
+            e.Property(p => p.Role).HasColumnName("role");
+            e.Property(p => p.Menu).HasColumnName("menu");
+            e.Property(p => p.Activity).HasColumnName("activity");
+            e.Property(p => p.Detail).HasColumnName("detail");
+            e.Property(p => p.IpAddress).HasColumnName("ip_address");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
         });
     }
 }
