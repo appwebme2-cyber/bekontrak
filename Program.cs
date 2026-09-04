@@ -158,11 +158,14 @@ using (var scope = app.Services.CreateScope())
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_ba_commissioning TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_penerimaan_material TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_ba_penerimaan_material TIMESTAMP;
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_perhitungan TIMESTAMP;
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_perhitungan TIMESTAMP;
             INSERT INTO sla_setting (kode_tahap, batas_hari, warning_persen)
             VALUES
               ('BA_JOINT_INSPECTION',    7, 80),
               ('BA_COMMISSIONING',       7, 80),
               ('BA_PENERIMAAN_MATERIAL', 7, 80),
+              ('PERHITUNGAN',            7, 80),
               ('BASTP',                  7, 80)
             ON CONFLICT (kode_tahap) DO NOTHING;
             DELETE FROM sla_setting WHERE kode_tahap IN ('PUNCHLIST', 'BAST');

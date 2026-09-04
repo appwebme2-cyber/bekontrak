@@ -563,31 +563,35 @@ public class SlaTagihanDto
     public DateTime? TglMasukLkp { get; set; }
     public DateTime? TglSelesaiLkp { get; set; }
 
-    // Tahap 5: BASTP (was BAST)
+    // Tahap 5: Perhitungan Tagihan
+    public DateTime? TglMasukPerhitungan { get; set; }
+    public DateTime? TglSelesaiPerhitungan { get; set; }
+
+    // Tahap 6: BASTP (was BAST)
     public DateTime? TglMasukBast { get; set; }
     public DateTime? TglSelesaiBast { get; set; }
 
-    // Tahap 6: BAKP
+    // Tahap 7: BAKP
     public DateTime? TglMasukBakp { get; set; }
     public DateTime? TglSelesaiBakp { get; set; }
 
-    // Tahap 7: IVENDOR
+    // Tahap 8: IVENDOR
     public DateTime? TglMasukIvendor { get; set; }
     public DateTime? TglSelesaiIvendor { get; set; }
 
-    // Tahap 8: SA
+    // Tahap 9: SA
     public DateTime? TglMasukSa { get; set; }
     public DateTime? TglSelesaiSa { get; set; }
 
-    // Tahap 9: PA
+    // Tahap 10: PA
     public DateTime? TglMasukPa { get; set; }
     public DateTime? TglSelesaiPa { get; set; }
 
-    // Tahap 10: VERIFIKASI
+    // Tahap 11: VERIFIKASI
     public DateTime? TglMasukVerifikasi { get; set; }
     public DateTime? TglSelesaiVerifikasi { get; set; }
 
-    // Tahap 11: PAYMENT
+    // Tahap 12: PAYMENT
     public DateTime? TglMasukPayment { get; set; }
     public DateTime? TglSelesaiPayment { get; set; }
 

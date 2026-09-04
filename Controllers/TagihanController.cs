@@ -224,6 +224,7 @@ public class TagihanController : ControllerBase
             "BA COMMISSIONING" or "BA_COMMISSIONING" => "BA_COMMISSIONING",
             "BA PENERIMAAN MATERIAL" or "BA_PENERIMAAN_MATERIAL" => "BA_PENERIMAAN_MATERIAL",
             "LKP" => "LKP",
+            "PERHITUNGAN" or "PERHITUNGAN TAGIHAN" or "PERHITUNGAN_TAGIHAN" => "PERHITUNGAN",
             "BASTP" or "BAST" => "BASTP",
             "BAKP" or "BAPP" or "BAKP/BAPP" => "BAKP",
             "IVENDOR" or "I-VENDOR" or "SUBMIT I-VENDOR" or "SUBMIT IVENDOR" => "IVENDOR",
@@ -243,6 +244,7 @@ public class TagihanController : ControllerBase
             case "BA_COMMISSIONING":       sla.TglMasukBaCommissioning       ??= when; break;
             case "BA_PENERIMAAN_MATERIAL": sla.TglMasukBaPenerimaanMaterial ??= when; break;
             case "LKP":                    sla.TglMasukLkp                   ??= when; break;
+            case "PERHITUNGAN":            sla.TglMasukPerhitungan           ??= when; break;
             case "BASTP":                  sla.TglMasukBast                  ??= when; break;
             case "BAKP":                   sla.TglMasukBakp                  ??= when; break;
             case "IVENDOR":                sla.TglMasukIvendor               ??= when; break;
@@ -261,6 +263,7 @@ public class TagihanController : ControllerBase
             case "BA_COMMISSIONING":       sla.TglSelesaiBaCommissioning       ??= when; break;
             case "BA_PENERIMAAN_MATERIAL": sla.TglSelesaiBaPenerimaanMaterial ??= when; break;
             case "LKP":                    sla.TglSelesaiLkp                   ??= when; break;
+            case "PERHITUNGAN":            sla.TglSelesaiPerhitungan           ??= when; break;
             case "BASTP":                  sla.TglSelesaiBast                  ??= when; break;
             case "BAKP":                   sla.TglSelesaiBakp                  ??= when; break;
             case "IVENDOR":                sla.TglSelesaiIvendor               ??= when; break;
@@ -278,6 +281,7 @@ public class TagihanController : ControllerBase
         TglMasukBaCommissioning = s.TglMasukBaCommissioning, TglSelesaiBaCommissioning = s.TglSelesaiBaCommissioning,
         TglMasukBaPenerimaanMaterial = s.TglMasukBaPenerimaanMaterial, TglSelesaiBaPenerimaanMaterial = s.TglSelesaiBaPenerimaanMaterial,
         TglMasukLkp = s.TglMasukLkp, TglSelesaiLkp = s.TglSelesaiLkp,
+        TglMasukPerhitungan = s.TglMasukPerhitungan, TglSelesaiPerhitungan = s.TglSelesaiPerhitungan,
         TglMasukBast = s.TglMasukBast, TglSelesaiBast = s.TglSelesaiBast,
         TglMasukBakp = s.TglMasukBakp, TglSelesaiBakp = s.TglSelesaiBakp,
         TglMasukIvendor = s.TglMasukIvendor, TglSelesaiIvendor = s.TglSelesaiIvendor,
