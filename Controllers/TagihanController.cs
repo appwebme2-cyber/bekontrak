@@ -143,7 +143,7 @@ public class TagihanController : ControllerBase
         catch (Exception ex)
         {
             await trx.RollbackAsync();
-            return StatusCode(500, new { message = $"Gagal membuat tagihan: {ex.GetType().Name} - {ex.Message}" });
+            return StatusCode(500, new { message = $"Gagal membuat tagihan: {DescribeException(ex)}" });
         }
     }
 
@@ -202,8 +202,22 @@ public class TagihanController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = $"Gagal menghapus tagihan: {ex.GetType().Name} - {ex.Message}" });
+            return StatusCode(500, new { message = $"Gagal menghapus tagihan: {DescribeException(ex)}" });
         }
+    }
+
+    // Gabungkan pesan exception + inner exception (DbUpdateException dari EF
+    // biasanya cuma bilang "see inner exception" tanpa detail aslinya)
+    private static string DescribeException(Exception ex)
+    {
+        var parts = new List<string>();
+        var current = ex;
+        while (current != null)
+        {
+            parts.Add($"{current.GetType().Name}: {current.Message}");
+            current = current.InnerException;
+        }
+        return string.Join(" -> ", parts);
     }
 
     // ============================================================
