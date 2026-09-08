@@ -102,6 +102,8 @@ public class AppDbContext : DbContext
             e.Property(p => p.TglSelesaiBaPenerimaanMaterial).HasColumnName("tgl_selesai_ba_penerimaan_material");
             e.Property(p => p.TglMasukLkp).HasColumnName("tgl_masuk_lkp");
             e.Property(p => p.TglSelesaiLkp).HasColumnName("tgl_selesai_lkp");
+            e.Property(p => p.TglMasukPerhitungan).HasColumnName("tgl_masuk_perhitungan");
+            e.Property(p => p.TglSelesaiPerhitungan).HasColumnName("tgl_selesai_perhitungan");
             e.Property(p => p.TglMasukBast).HasColumnName("tgl_masuk_bast");
             e.Property(p => p.TglSelesaiBast).HasColumnName("tgl_selesai_bast");
             e.Property(p => p.TglMasukBakp).HasColumnName("tgl_masuk_bakp");
