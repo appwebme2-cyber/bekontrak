@@ -171,13 +171,25 @@ public class TagihanController : ControllerBase
         var tagihan = await _context.Tagihans.FindAsync(id);
         if (tagihan == null) return NotFound();
 
-        // Hapus juga baris SLA terkait (kalau ada)
-        var sla = await _context.SlaTagihans.FirstOrDefaultAsync(s => s.IdTagihan == id);
-        if (sla != null) _context.SlaTagihans.Remove(sla);
+        try
+        {
+            // Hapus dulu baris SLA terkait (kalau ada) di transaksi terpisah,
+            // supaya urutan delete tidak melanggar FK id_tagihan -> tagihan
+            var sla = await _context.SlaTagihans.FirstOrDefaultAsync(s => s.IdTagihan == id);
+            if (sla != null)
+            {
+                _context.SlaTagihans.Remove(sla);
+                await _context.SaveChangesAsync();
+            }
 
-        _context.Tagihans.Remove(tagihan);
-        await _context.SaveChangesAsync();
-        return Ok(new { message = "Tagihan berhasil dihapus" });
+            _context.Tagihans.Remove(tagihan);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Tagihan berhasil dihapus" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal menghapus tagihan: {ex.GetType().Name} - {ex.Message}" });
+        }
     }
 
     // ============================================================
