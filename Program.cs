@@ -123,6 +123,15 @@ using (var scope = app.Services.CreateScope())
 
     // Tambah kolom yang ditambahkan via migration tapi belum ada di DB
     // (EnsureCreated tidak menjalankan migration, hanya buat schema awal)
+    //
+    // PENTING: setiap ExecuteSqlRaw dikirim sebagai satu batch statement ke
+    // Postgres, yang menjalankannya dalam satu transaksi implisit — kalau ada
+    // SATU statement yang gagal (mis. ON CONFLICT butuh unique constraint yang
+    // belum tentu ada di tabel sla_setting yang dibuat manual), SEMUA statement
+    // lain di batch yang sama ikut di-rollback, termasuk ALTER TABLE ADD COLUMN
+    // yang seharusnya tidak berhubungan. Makanya blok ini dipecah per kelompok
+    // supaya kegagalan di satu bagian (mis. seed sla_setting) tidak menggagalkan
+    // penambahan kolom sla_tagihan yang dibutuhkan endpoint create/delete tagihan.
     try
     {
         db.Database.ExecuteSqlRaw(@"
@@ -152,6 +161,16 @@ using (var scope = app.Services.CreateScope())
             );
             CREATE INDEX IF NOT EXISTS idx_log_akses_created_at ON log_akses(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_log_akses_user_id ON log_akses(user_id);
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Column migration warning (kontrak/token_blacklist/log_akses): {ex.Message}");
+    }
+
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_joint_inspection TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_ba_joint_inspection TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_commissioning TIMESTAMP;
@@ -160,6 +179,16 @@ using (var scope = app.Services.CreateScope())
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_ba_penerimaan_material TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_perhitungan TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_perhitungan TIMESTAMP;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Column migration warning (sla_tagihan): {ex.Message}");
+    }
+
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
             INSERT INTO sla_setting (kode_tahap, batas_hari, warning_persen)
             VALUES
               ('BA_JOINT_INSPECTION',    7, 80),
@@ -173,7 +202,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Startup] Column migration warning: {ex.Message}");
+        Console.WriteLine($"[Startup] Seed warning (sla_setting): {ex.Message}");
     }
 }
 

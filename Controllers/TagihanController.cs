@@ -111,26 +111,40 @@ public class TagihanController : ControllerBase
             DokumenTagihan = dto.DokumenTagihan, DokumenMemo = dto.DokumenMemo,
             Catatan = dto.Catatan
         };
-        _context.Tagihans.Add(tagihan);
-        await _context.SaveChangesAsync();
 
-        // ===== Buat baris SLA + cap tgl_masuk untuk status awal =====
-        var now = DateTime.UtcNow;
-        var sla = new SlaTagihan
+        // Satu transaksi untuk insert tagihan + sla, supaya kalau insert SLA
+        // gagal, insert tagihan ikut di-rollback (tidak menyisakan tagihan
+        // "yatim" yang bikin duplikat saat user coba submit ulang).
+        using var trx = await _context.Database.BeginTransactionAsync();
+        try
         {
-            IdKontrak = tagihan.IdKontrak,
-            IdTagihan = tagihan.IdTagihan,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-        var kodeAwal = NormalizeKode(tagihan.StatusTagihan);
-        if (kodeAwal != null)
-            SetTglMasuk(sla, kodeAwal, now);
+            _context.Tagihans.Add(tagihan);
+            await _context.SaveChangesAsync();
 
-        _context.SlaTagihans.Add(sla);
-        await _context.SaveChangesAsync();
+            // ===== Buat baris SLA + cap tgl_masuk untuk status awal =====
+            var now = DateTime.UtcNow;
+            var sla = new SlaTagihan
+            {
+                IdKontrak = tagihan.IdKontrak,
+                IdTagihan = tagihan.IdTagihan,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            var kodeAwal = NormalizeKode(tagihan.StatusTagihan);
+            if (kodeAwal != null)
+                SetTglMasuk(sla, kodeAwal, now);
 
-        return Ok(tagihan);
+            _context.SlaTagihans.Add(sla);
+            await _context.SaveChangesAsync();
+
+            await trx.CommitAsync();
+            return Ok(tagihan);
+        }
+        catch (Exception ex)
+        {
+            await trx.RollbackAsync();
+            return StatusCode(500, new { message = $"Gagal membuat tagihan: {ex.GetType().Name} - {ex.Message}" });
+        }
     }
 
     [HttpPut("{id}")]
