@@ -78,53 +78,60 @@ public class ContractsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateKontrakDto dto)
     {
-        var kontrak = new Kontrak
+        try
         {
-            IdVendor = dto.IdVendor,
-            JudulKontrak = dto.JudulKontrak,
-            NoDokumenKontrak = dto.NoDokumenKontrak,
-            NoPoPr = dto.NoPoPr,
-            NoIrkap = dto.NoIrkap,
-            DireksiPekerjaan = dto.DireksiPekerjaan,
-            ProgramKerja = dto.ProgramKerja,
-            Planner = dto.Planner,
-            KboBagian = dto.KboBagian,
-            TipeKontrak = dto.TipeKontrak,
-            StatusKontrak = dto.StatusKontrak,
-            TanggalSpbDiterima = dto.TanggalSpbDiterima,
-            TanggalTerimaDokumen = dto.TanggalTerimaDokumen,
-            TanggalMaksimalKom = dto.TanggalMaksimalKom,
-            TanggalMulai = dto.TanggalMulai,
-            TanggalSelesai = dto.TanggalSelesai,
-            SlaKomHari = dto.SlaKomHari,
-            EstimasiTanggalKom = dto.EstimasiTanggalKom,
-            TanggalKom = dto.TanggalKom,
-            KomTerlambat = dto.KomTerlambat,
-            NilaiAwal = dto.NilaiAwal,
-            DurasiKontrakHari = dto.DurasiKontrakHari,
-            ProgressPlan = dto.ProgressPlan,
-            ProgressActual = dto.ProgressActual,
-            AktivitasSaatIni = dto.AktivitasSaatIni,
-            Kendala = dto.Kendala,
-            Disiplin = dto.Disiplin,
-            TkdnPercentage = dto.TkdnPercentage,
-            TanggalLkp = dto.TanggalLkp,
-            SCurveData = dto.SCurveData,
-            ContractDocuments = dto.ContractDocuments,
-            AmendmentDocuments = dto.AmendmentDocuments,
-            TanggalMpl = dto.TanggalMpl,
-            TanggalMpa = dto.TanggalMpa,
-            MasaPemeliharaanHari = dto.MasaPemeliharaanHari
-        };
+            var kontrak = new Kontrak
+            {
+                IdVendor = dto.IdVendor,
+                JudulKontrak = dto.JudulKontrak,
+                NoDokumenKontrak = dto.NoDokumenKontrak,
+                NoPoPr = dto.NoPoPr,
+                NoIrkap = dto.NoIrkap,
+                DireksiPekerjaan = dto.DireksiPekerjaan,
+                ProgramKerja = dto.ProgramKerja,
+                Planner = dto.Planner,
+                KboBagian = dto.KboBagian,
+                TipeKontrak = dto.TipeKontrak,
+                StatusKontrak = dto.StatusKontrak,
+                TanggalSpbDiterima = dto.TanggalSpbDiterima,
+                TanggalTerimaDokumen = dto.TanggalTerimaDokumen,
+                TanggalMaksimalKom = dto.TanggalMaksimalKom,
+                TanggalMulai = dto.TanggalMulai,
+                TanggalSelesai = dto.TanggalSelesai,
+                SlaKomHari = dto.SlaKomHari,
+                EstimasiTanggalKom = dto.EstimasiTanggalKom,
+                TanggalKom = dto.TanggalKom,
+                KomTerlambat = dto.KomTerlambat,
+                NilaiAwal = dto.NilaiAwal,
+                DurasiKontrakHari = dto.DurasiKontrakHari,
+                ProgressPlan = dto.ProgressPlan,
+                ProgressActual = dto.ProgressActual,
+                AktivitasSaatIni = dto.AktivitasSaatIni,
+                Kendala = dto.Kendala,
+                Disiplin = dto.Disiplin,
+                TkdnPercentage = dto.TkdnPercentage,
+                TanggalLkp = dto.TanggalLkp,
+                SCurveData = dto.SCurveData,
+                ContractDocuments = dto.ContractDocuments,
+                AmendmentDocuments = dto.AmendmentDocuments,
+                TanggalMpl = dto.TanggalMpl,
+                TanggalMpa = dto.TanggalMpa,
+                MasaPemeliharaanHari = dto.MasaPemeliharaanHari
+            };
 
-        _context.Kontraks.Add(kontrak);
-        await _context.SaveChangesAsync();
+            _context.Kontraks.Add(kontrak);
+            await _context.SaveChangesAsync();
 
-        var result = await _context.Kontraks
-            .Include(k => k.Vendor)
-            .FirstOrDefaultAsync(k => k.IdKontrak == kontrak.IdKontrak);
+            var result = await _context.Kontraks
+                .Include(k => k.Vendor)
+                .FirstOrDefaultAsync(k => k.IdKontrak == kontrak.IdKontrak);
 
-        return Ok(MapToDto(result!));
+            return Ok(MapToDto(result!));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal membuat kontrak: {DescribeException(ex)}" });
+        }
     }
 
     [HttpPut("{id}")]
@@ -133,50 +140,71 @@ public class ContractsController : ControllerBase
         var kontrak = await _context.Kontraks.FindAsync(id);
         if (kontrak == null) return NotFound();
 
-        kontrak.IdVendor = dto.IdVendor;
-        kontrak.JudulKontrak = dto.JudulKontrak;
-        kontrak.NoDokumenKontrak = dto.NoDokumenKontrak;
-        kontrak.NoPoPr = dto.NoPoPr;
-        kontrak.NoIrkap = dto.NoIrkap;
-        kontrak.DireksiPekerjaan = dto.DireksiPekerjaan;
-        kontrak.ProgramKerja = dto.ProgramKerja;
-        kontrak.Planner = dto.Planner;
-        kontrak.KboBagian = dto.KboBagian;
-        kontrak.TipeKontrak = dto.TipeKontrak;
-        kontrak.StatusKontrak = dto.StatusKontrak;
-        kontrak.TanggalSpbDiterima = dto.TanggalSpbDiterima;
-        kontrak.TanggalTerimaDokumen = dto.TanggalTerimaDokumen;
-        kontrak.TanggalMaksimalKom = dto.TanggalMaksimalKom;
-        kontrak.TanggalMulai = dto.TanggalMulai;
-        kontrak.TanggalSelesai = dto.TanggalSelesai;
-        kontrak.SlaKomHari = dto.SlaKomHari;
-        kontrak.EstimasiTanggalKom = dto.EstimasiTanggalKom;
-        kontrak.TanggalKom = dto.TanggalKom;
-        kontrak.KomTerlambat = dto.KomTerlambat;
-        kontrak.NilaiAwal = dto.NilaiAwal;
-        kontrak.DurasiKontrakHari = dto.DurasiKontrakHari;
-        kontrak.ProgressPlan = dto.ProgressPlan;
-        kontrak.ProgressActual = dto.ProgressActual;
-        kontrak.AktivitasSaatIni = dto.AktivitasSaatIni;
-        kontrak.Kendala = dto.Kendala;
-        kontrak.Disiplin = dto.Disiplin;
-        kontrak.TkdnPercentage = dto.TkdnPercentage;
-        kontrak.TanggalLkp = dto.TanggalLkp;
-        if (dto.SCurveData != null) kontrak.SCurveData = dto.SCurveData;
-        kontrak.ContractDocuments = dto.ContractDocuments;
-        kontrak.AmendmentDocuments = dto.AmendmentDocuments;
-        kontrak.TanggalMpl = dto.TanggalMpl;
-        kontrak.TanggalMpa = dto.TanggalMpa;
-        kontrak.MasaPemeliharaanHari = dto.MasaPemeliharaanHari;
-        kontrak.UpdatedAt = DateTime.UtcNow;
+        try
+        {
+            kontrak.IdVendor = dto.IdVendor;
+            kontrak.JudulKontrak = dto.JudulKontrak;
+            kontrak.NoDokumenKontrak = dto.NoDokumenKontrak;
+            kontrak.NoPoPr = dto.NoPoPr;
+            kontrak.NoIrkap = dto.NoIrkap;
+            kontrak.DireksiPekerjaan = dto.DireksiPekerjaan;
+            kontrak.ProgramKerja = dto.ProgramKerja;
+            kontrak.Planner = dto.Planner;
+            kontrak.KboBagian = dto.KboBagian;
+            kontrak.TipeKontrak = dto.TipeKontrak;
+            kontrak.StatusKontrak = dto.StatusKontrak;
+            kontrak.TanggalSpbDiterima = dto.TanggalSpbDiterima;
+            kontrak.TanggalTerimaDokumen = dto.TanggalTerimaDokumen;
+            kontrak.TanggalMaksimalKom = dto.TanggalMaksimalKom;
+            kontrak.TanggalMulai = dto.TanggalMulai;
+            kontrak.TanggalSelesai = dto.TanggalSelesai;
+            kontrak.SlaKomHari = dto.SlaKomHari;
+            kontrak.EstimasiTanggalKom = dto.EstimasiTanggalKom;
+            kontrak.TanggalKom = dto.TanggalKom;
+            kontrak.KomTerlambat = dto.KomTerlambat;
+            kontrak.NilaiAwal = dto.NilaiAwal;
+            kontrak.DurasiKontrakHari = dto.DurasiKontrakHari;
+            kontrak.ProgressPlan = dto.ProgressPlan;
+            kontrak.ProgressActual = dto.ProgressActual;
+            kontrak.AktivitasSaatIni = dto.AktivitasSaatIni;
+            kontrak.Kendala = dto.Kendala;
+            kontrak.Disiplin = dto.Disiplin;
+            kontrak.TkdnPercentage = dto.TkdnPercentage;
+            kontrak.TanggalLkp = dto.TanggalLkp;
+            if (dto.SCurveData != null) kontrak.SCurveData = dto.SCurveData;
+            kontrak.ContractDocuments = dto.ContractDocuments;
+            kontrak.AmendmentDocuments = dto.AmendmentDocuments;
+            kontrak.TanggalMpl = dto.TanggalMpl;
+            kontrak.TanggalMpa = dto.TanggalMpa;
+            kontrak.MasaPemeliharaanHari = dto.MasaPemeliharaanHari;
+            kontrak.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-        var result = await _context.Kontraks
-            .Include(k => k.Vendor)
-            .FirstOrDefaultAsync(k => k.IdKontrak == id);
+            var result = await _context.Kontraks
+                .Include(k => k.Vendor)
+                .FirstOrDefaultAsync(k => k.IdKontrak == id);
 
-        return Ok(MapToDto(result!));
+            return Ok(MapToDto(result!));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal memperbarui kontrak: {DescribeException(ex)}" });
+        }
+    }
+
+    // Gabungkan pesan exception + inner exception (DbUpdateException dari EF
+    // biasanya cuma bilang "see inner exception" tanpa detail aslinya)
+    private static string DescribeException(Exception ex)
+    {
+        var parts = new List<string>();
+        var current = ex;
+        while (current != null)
+        {
+            parts.Add($"{current.GetType().Name}: {current.Message}");
+            current = current.InnerException;
+        }
+        return string.Join(" -> ", parts);
     }
 
     [HttpPut("{id}/scurve")]
