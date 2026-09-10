@@ -94,6 +94,8 @@ public class AppDbContext : DbContext
             e.Property(p => p.Id).HasColumnName("id");
             e.Property(p => p.IdKontrak).HasColumnName("id_kontrak");
             e.Property(p => p.IdTagihan).HasColumnName("id_tagihan");
+            e.Property(p => p.TglMasukProgressEksekusi).HasColumnName("tgl_masuk_progress_eksekusi");
+            e.Property(p => p.TglSelesaiProgressEksekusi).HasColumnName("tgl_selesai_progress_eksekusi");
             e.Property(p => p.TglMasukBaJointInspection).HasColumnName("tgl_masuk_ba_joint_inspection");
             e.Property(p => p.TglSelesaiBaJointInspection).HasColumnName("tgl_selesai_ba_joint_inspection");
             e.Property(p => p.TglMasukBaCommissioning).HasColumnName("tgl_masuk_ba_commissioning");

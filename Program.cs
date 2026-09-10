@@ -171,6 +171,8 @@ using (var scope = app.Services.CreateScope())
     try
     {
         db.Database.ExecuteSqlRaw(@"
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_progress_eksekusi TIMESTAMP;
+            ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_progress_eksekusi TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_joint_inspection TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_selesai_ba_joint_inspection TIMESTAMP;
             ALTER TABLE sla_tagihan ADD COLUMN IF NOT EXISTS tgl_masuk_ba_commissioning TIMESTAMP;

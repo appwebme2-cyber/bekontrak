@@ -546,7 +546,11 @@ public class SlaTagihanDto
     // Samakan tipe dengan entity (string kalau IdKontrak/IdTagihan string, Guid kalau Guid)
     public string IdKontrak { get; set; } = string.Empty;
     public string? IdTagihan { get; set; }
- 
+
+    // Tahap 0: Progress Eksekusi
+    public DateTime? TglMasukProgressEksekusi { get; set; }
+    public DateTime? TglSelesaiProgressEksekusi { get; set; }
+
     // Tahap 1: BA Joint Inspection
     public DateTime? TglMasukBaJointInspection { get; set; }
     public DateTime? TglSelesaiBaJointInspection { get; set; }

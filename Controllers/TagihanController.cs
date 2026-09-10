@@ -260,6 +260,7 @@ public class TagihanController : ControllerBase
         var s = status.Trim().ToUpperInvariant();
         return s switch
         {
+            "PROGRESS EKSEKUSI" or "PROGRESS_EKSEKUSI" => "PROGRESS_EKSEKUSI",
             "BA JOINT INSPECTION" or "BA_JOINT_INSPECTION" => "BA_JOINT_INSPECTION",
             "BA COMMISSIONING" or "BA_COMMISSIONING" => "BA_COMMISSIONING",
             "BA PENERIMAAN MATERIAL" or "BA_PENERIMAAN_MATERIAL" => "BA_PENERIMAAN_MATERIAL",
@@ -280,6 +281,7 @@ public class TagihanController : ControllerBase
     {
         switch (kode)
         {
+            case "PROGRESS_EKSEKUSI":      sla.TglMasukProgressEksekusi     ??= when; break;
             case "BA_JOINT_INSPECTION":    sla.TglMasukBaJointInspection    ??= when; break;
             case "BA_COMMISSIONING":       sla.TglMasukBaCommissioning       ??= when; break;
             case "BA_PENERIMAAN_MATERIAL": sla.TglMasukBaPenerimaanMaterial ??= when; break;
@@ -299,6 +301,7 @@ public class TagihanController : ControllerBase
     {
         switch (kode)
         {
+            case "PROGRESS_EKSEKUSI":      sla.TglSelesaiProgressEksekusi     ??= when; break;
             case "BA_JOINT_INSPECTION":    sla.TglSelesaiBaJointInspection    ??= when; break;
             case "BA_COMMISSIONING":       sla.TglSelesaiBaCommissioning       ??= when; break;
             case "BA_PENERIMAAN_MATERIAL": sla.TglSelesaiBaPenerimaanMaterial ??= when; break;
@@ -317,6 +320,7 @@ public class TagihanController : ControllerBase
     private static SlaTagihanDto MapSlaToDto(SlaTagihan s) => new()
     {
         Id = s.Id, IdKontrak = s.IdKontrak, IdTagihan = s.IdTagihan,
+        TglMasukProgressEksekusi = s.TglMasukProgressEksekusi, TglSelesaiProgressEksekusi = s.TglSelesaiProgressEksekusi,
         TglMasukBaJointInspection = s.TglMasukBaJointInspection, TglSelesaiBaJointInspection = s.TglSelesaiBaJointInspection,
         TglMasukBaCommissioning = s.TglMasukBaCommissioning, TglSelesaiBaCommissioning = s.TglSelesaiBaCommissioning,
         TglMasukBaPenerimaanMaterial = s.TglMasukBaPenerimaanMaterial, TglSelesaiBaPenerimaanMaterial = s.TglSelesaiBaPenerimaanMaterial,
