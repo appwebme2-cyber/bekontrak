@@ -213,11 +213,18 @@ public class ContractsController : ControllerBase
         var kontrak = await _context.Kontraks.FindAsync(id);
         if (kontrak == null) return NotFound();
 
-        kontrak.SCurveData = dto.SCurveData;
-        kontrak.UpdatedAt = DateTime.UtcNow;
+        try
+        {
+            kontrak.SCurveData = dto.SCurveData;
+            kontrak.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
-        return Ok(new { message = "S-Curve berhasil disimpan" });
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "S-Curve berhasil disimpan" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal menyimpan S-Curve: {DescribeException(ex)}" });
+        }
     }
 
     [HttpPut("{id}/progress")]
@@ -226,12 +233,19 @@ public class ContractsController : ControllerBase
         var kontrak = await _context.Kontraks.FindAsync(id);
         if (kontrak == null) return NotFound();
 
-        kontrak.ProgressPlan = dto.ProgressPlan;
-        kontrak.ProgressActual = dto.ProgressActual;
-        kontrak.UpdatedAt = DateTime.UtcNow;
+        try
+        {
+            kontrak.ProgressPlan = dto.ProgressPlan;
+            kontrak.ProgressActual = dto.ProgressActual;
+            kontrak.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
-        return Ok(new { message = "Progress berhasil diperbarui" });
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Progress berhasil diperbarui" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal memperbarui progress: {DescribeException(ex)}" });
+        }
     }
 
     [HttpDelete("{id}")]
