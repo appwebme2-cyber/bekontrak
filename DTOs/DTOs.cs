@@ -275,6 +275,13 @@ public class KontrakSummaryDto
     public string IdKontrak { get; set; } = string.Empty;
     public string JudulKontrak { get; set; } = string.Empty;
     public string TipeKontrak { get; set; } = string.Empty;
+    public string? StatusKontrak { get; set; }
+    public decimal? NilaiAwal { get; set; }
+    public decimal? NilaiKontrakBaru { get; set; }
+    public bool HasAmendment { get; set; }
+    public string? DireksiPekerjaan { get; set; }
+    public DateTime? TanggalMulai { get; set; }
+    public DateTime? TanggalSelesai { get; set; }
     public VendorDto? Vendor { get; set; }
 }
 

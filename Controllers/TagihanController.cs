@@ -33,7 +33,10 @@ public class TagihanController : ControllerBase
                 Kontrak = t.Kontrak == null ? null : new KontrakSummaryDto
                 {
                     IdKontrak = t.Kontrak.IdKontrak, JudulKontrak = t.Kontrak.JudulKontrak,
-                    TipeKontrak = t.Kontrak.TipeKontrak,
+                    TipeKontrak = t.Kontrak.TipeKontrak, StatusKontrak = t.Kontrak.StatusKontrak,
+                    NilaiAwal = t.Kontrak.NilaiAwal, NilaiKontrakBaru = t.Kontrak.NilaiKontrakBaru,
+                    HasAmendment = t.Kontrak.HasAmendment, DireksiPekerjaan = t.Kontrak.DireksiPekerjaan,
+                    TanggalMulai = t.Kontrak.TanggalMulai, TanggalSelesai = t.Kontrak.TanggalSelesai,
                     Vendor = t.Kontrak.Vendor == null ? null : new VendorDto
                     { IdVendor = t.Kontrak.Vendor.IdVendor, NamaVendor = t.Kontrak.Vendor.NamaVendor }
                 }
@@ -60,7 +63,10 @@ public class TagihanController : ControllerBase
             Kontrak = t.Kontrak == null ? null : new KontrakSummaryDto
             {
                 IdKontrak = t.Kontrak.IdKontrak, JudulKontrak = t.Kontrak.JudulKontrak,
-                TipeKontrak = t.Kontrak.TipeKontrak,
+                TipeKontrak = t.Kontrak.TipeKontrak, StatusKontrak = t.Kontrak.StatusKontrak,
+                NilaiAwal = t.Kontrak.NilaiAwal, NilaiKontrakBaru = t.Kontrak.NilaiKontrakBaru,
+                HasAmendment = t.Kontrak.HasAmendment, DireksiPekerjaan = t.Kontrak.DireksiPekerjaan,
+                TanggalMulai = t.Kontrak.TanggalMulai, TanggalSelesai = t.Kontrak.TanggalSelesai,
                 Vendor = t.Kontrak.Vendor == null ? null : new VendorDto
                 {
                     IdVendor = t.Kontrak.Vendor.IdVendor, NamaVendor = t.Kontrak.Vendor.NamaVendor,
