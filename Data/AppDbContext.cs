@@ -26,6 +26,9 @@ public class AppDbContext : DbContext
     public DbSet<Planner> Planners { get; set; }
     public DbSet<TokenBlacklist> TokenBlacklists { get; set; }
     public DbSet<LogAkses> LogAkses { get; set; }
+    public DbSet<RabItem> RabItems { get; set; }
+    public DbSet<MaterialRequirementDraft> MaterialRequirementDrafts { get; set; }
+    public DbSet<MaterialRequirementLine> MaterialRequirementLines { get; set; }
 
 
 
@@ -51,6 +54,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<DireksiPekerjaan>().ToTable("direksi_pekerjaan");
         modelBuilder.Entity<ProgramKerja>().ToTable("program_kerja");
         modelBuilder.Entity<Planner>().ToTable("planner");
+        modelBuilder.Entity<RabItem>().ToTable("rab_item");
+        modelBuilder.Entity<MaterialRequirementDraft>().ToTable("material_requirement_draft");
+        modelBuilder.Entity<MaterialRequirementLine>().ToTable("material_requirement_line");
         modelBuilder.Entity<DokumenApproval>(e => {
             e.Property(p => p.IdDokumen).HasColumnName("id_dokumen");
             e.Property(p => p.IdKontrak).HasColumnName("id_kontrak");
@@ -283,6 +289,56 @@ public class AppDbContext : DbContext
             e.Property(p => p.TanggalPaymentApproval).HasColumnName("tanggal_payment_approval");
             e.Property(p => p.TanggalPaid).HasColumnName("tanggal_paid");
             e.Property(p => p.CatatanStatus).HasColumnName("catatan_status");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+            e.Property(p => p.UpdatedAt).HasColumnName("updated_at");
+        });
+
+        // Column name mapping - RabItem
+        modelBuilder.Entity<RabItem>(e => {
+            e.Property(p => p.IdRabItem).HasColumnName("id_rab_item");
+            e.Property(p => p.IdKontrak).HasColumnName("id_kontrak");
+            e.Property(p => p.KodeItem).HasColumnName("kode_item");
+            e.Property(p => p.Kategori).HasColumnName("kategori");
+            e.Property(p => p.UraianPekerjaan).HasColumnName("uraian_pekerjaan");
+            e.Property(p => p.Satuan).HasColumnName("satuan");
+            e.Property(p => p.HargaSatuanUpah).HasColumnName("harga_satuan_upah");
+            e.Property(p => p.HargaSatuanMaterial).HasColumnName("harga_satuan_material");
+            e.Property(p => p.HargaSatuanAlat).HasColumnName("harga_satuan_alat");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+            e.Property(p => p.UpdatedAt).HasColumnName("updated_at");
+        });
+
+        // Column name mapping - MaterialRequirementDraft
+        modelBuilder.Entity<MaterialRequirementDraft>(e => {
+            e.Property(p => p.IdDraft).HasColumnName("id_draft");
+            e.Property(p => p.IdKontrak).HasColumnName("id_kontrak");
+            e.Property(p => p.NomorMrf).HasColumnName("nomor_mrf");
+            e.Property(p => p.TagUnit).HasColumnName("tag_unit");
+            e.Property(p => p.LokasiArea).HasColumnName("lokasi_area");
+            e.Property(p => p.TanggalRekomendasi).HasColumnName("tanggal_rekomendasi");
+            e.Property(p => p.Problem).HasColumnName("problem");
+            e.Property(p => p.RekomendasiSolusi).HasColumnName("rekomendasi_solusi");
+            e.Property(p => p.Status).HasColumnName("status");
+            e.Property(p => p.RekomendasiDocuments).HasColumnName("rekomendasi_documents");
+            e.Property(p => p.GambarKerjaDocuments).HasColumnName("gambar_kerja_documents");
+            e.Property(p => p.Catatan).HasColumnName("catatan");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+            e.Property(p => p.UpdatedAt).HasColumnName("updated_at");
+        });
+
+        // Column name mapping - MaterialRequirementLine
+        modelBuilder.Entity<MaterialRequirementLine>(e => {
+            e.Property(p => p.IdLine).HasColumnName("id_line");
+            e.Property(p => p.IdDraft).HasColumnName("id_draft");
+            e.Property(p => p.Jenis).HasColumnName("jenis");
+            e.Property(p => p.IdRabItem).HasColumnName("id_rab_item");
+            e.Property(p => p.KodeItemSnapshot).HasColumnName("kode_item_snapshot");
+            e.Property(p => p.UraianPekerjaan).HasColumnName("uraian_pekerjaan");
+            e.Property(p => p.Satuan).HasColumnName("satuan");
+            e.Property(p => p.VolumeKalkulasi).HasColumnName("volume_kalkulasi");
+            e.Property(p => p.CatatanKalkulasi).HasColumnName("catatan_kalkulasi");
+            e.Property(p => p.VolumeKlaim).HasColumnName("volume_klaim");
+            e.Property(p => p.Urutan).HasColumnName("urutan");
             e.Property(p => p.CreatedAt).HasColumnName("created_at");
             e.Property(p => p.UpdatedAt).HasColumnName("updated_at");
         });

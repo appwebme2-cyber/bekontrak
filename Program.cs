@@ -206,6 +206,65 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"[Startup] Seed warning (sla_setting): {ex.Message}");
     }
+
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS rab_item (
+                id_rab_item TEXT PRIMARY KEY,
+                id_kontrak TEXT NOT NULL,
+                kode_item TEXT NOT NULL,
+                kategori TEXT,
+                uraian_pekerjaan TEXT NOT NULL,
+                satuan TEXT NOT NULL,
+                harga_satuan_upah NUMERIC,
+                harga_satuan_material NUMERIC,
+                harga_satuan_alat NUMERIC,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_rab_item_id_kontrak ON rab_item(id_kontrak);
+
+            CREATE TABLE IF NOT EXISTS material_requirement_draft (
+                id_draft TEXT PRIMARY KEY,
+                id_kontrak TEXT NOT NULL,
+                nomor_mrf TEXT,
+                tag_unit TEXT NOT NULL,
+                lokasi_area TEXT,
+                tanggal_rekomendasi TIMESTAMP,
+                problem TEXT,
+                rekomendasi_solusi TEXT,
+                status TEXT NOT NULL DEFAULT 'Draft',
+                rekomendasi_documents TEXT,
+                gambar_kerja_documents TEXT,
+                catatan TEXT,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_mr_draft_id_kontrak ON material_requirement_draft(id_kontrak);
+
+            CREATE TABLE IF NOT EXISTS material_requirement_line (
+                id_line TEXT PRIMARY KEY,
+                id_draft TEXT NOT NULL,
+                jenis TEXT NOT NULL DEFAULT 'Pekerjaan',
+                id_rab_item TEXT,
+                kode_item_snapshot TEXT,
+                uraian_pekerjaan TEXT NOT NULL,
+                satuan TEXT NOT NULL,
+                volume_kalkulasi NUMERIC NOT NULL DEFAULT 0,
+                catatan_kalkulasi TEXT,
+                volume_klaim NUMERIC,
+                urutan INTEGER NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_mr_line_id_draft ON material_requirement_line(id_draft);
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Table creation warning (rab_item/material_requirement_*): {ex.Message}");
+    }
 }
 
 // ==================== MIDDLEWARE ====================

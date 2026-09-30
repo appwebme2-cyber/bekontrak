@@ -458,3 +458,84 @@ public class LogAkses
     public string? IpAddress { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+// Master item RAB per kontrak (kode item, uraian, satuan, harga satuan), diinput
+// manual sekali per kontrak lalu dipakai berulang untuk mencocokkan draft kebutuhan.
+public class RabItem
+{
+    [Key]
+    public string IdRabItem { get; set; } = Guid.NewGuid().ToString();
+    [Required]
+    public string IdKontrak { get; set; } = string.Empty;
+    [Required]
+    public string KodeItem { get; set; } = string.Empty; // mis. "2.1.1.1.21"
+    public string? Kategori { get; set; }
+    [Required]
+    public string UraianPekerjaan { get; set; } = string.Empty;
+    [Required]
+    public string Satuan { get; set; } = string.Empty;
+    public decimal? HargaSatuanUpah { get; set; }
+    public decimal? HargaSatuanMaterial { get; set; }
+    public decimal? HargaSatuanAlat { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    [ForeignKey("IdKontrak")]
+    public Kontrak? Kontrak { get; set; }
+}
+
+// Header 1 Rekomendasi/MRF yang mau didraft kebutuhan material & pekerjaannya.
+public class MaterialRequirementDraft
+{
+    [Key]
+    public string IdDraft { get; set; } = Guid.NewGuid().ToString();
+    [Required]
+    public string IdKontrak { get; set; } = string.Empty;
+    public string? NomorMrf { get; set; }
+    [Required]
+    public string TagUnit { get; set; } = string.Empty;
+    public string? LokasiArea { get; set; }
+    public DateTime? TanggalRekomendasi { get; set; }
+    public string? Problem { get; set; }
+    public string? RekomendasiSolusi { get; set; }
+    [Required]
+    public string Status { get; set; } = "Draft"; // Draft, Final
+    // Dokumen sebagai JSON string, pola sama seperti ContractDocuments
+    public string? RekomendasiDocuments { get; set; }
+    public string? GambarKerjaDocuments { get; set; }
+    public string? Catatan { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    [ForeignKey("IdKontrak")]
+    public Kontrak? Kontrak { get; set; }
+    public ICollection<MaterialRequirementLine> Lines { get; set; } = new List<MaterialRequirementLine>();
+}
+
+// Baris pekerjaan atau material (BOM) di dalam satu draft, opsional dicocokkan ke RabItem.
+public class MaterialRequirementLine
+{
+    [Key]
+    public string IdLine { get; set; } = Guid.NewGuid().ToString();
+    [Required]
+    public string IdDraft { get; set; } = string.Empty;
+    [Required]
+    public string Jenis { get; set; } = "Pekerjaan"; // Pekerjaan, Material
+    public string? IdRabItem { get; set; }
+    public string? KodeItemSnapshot { get; set; }
+    [Required]
+    public string UraianPekerjaan { get; set; } = string.Empty;
+    [Required]
+    public string Satuan { get; set; } = string.Empty;
+    public decimal VolumeKalkulasi { get; set; }
+    public string? CatatanKalkulasi { get; set; }
+    public decimal? VolumeKlaim { get; set; }
+    public int Urutan { get; set; } = 0;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    [ForeignKey("IdDraft")]
+    public MaterialRequirementDraft? Draft { get; set; }
+    [ForeignKey("IdRabItem")]
+    public RabItem? RabItem { get; set; }
+}

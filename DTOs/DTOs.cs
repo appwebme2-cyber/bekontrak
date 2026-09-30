@@ -370,6 +370,107 @@ public class UpdateKonfigurasiDto
     public string NilaiSetting { get; set; } = string.Empty;
 }
 
+// ===================== RAB ITEM =====================
+public class RabItemDto
+{
+    public string IdRabItem { get; set; } = string.Empty;
+    public string IdKontrak { get; set; } = string.Empty;
+    public string KodeItem { get; set; } = string.Empty;
+    public string? Kategori { get; set; }
+    public string UraianPekerjaan { get; set; } = string.Empty;
+    public string Satuan { get; set; } = string.Empty;
+    public decimal? HargaSatuanUpah { get; set; }
+    public decimal? HargaSatuanMaterial { get; set; }
+    public decimal? HargaSatuanAlat { get; set; }
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public class CreateRabItemDto
+{
+    public string IdKontrak { get; set; } = string.Empty;
+    public string KodeItem { get; set; } = string.Empty;
+    public string? Kategori { get; set; }
+    public string UraianPekerjaan { get; set; } = string.Empty;
+    public string Satuan { get; set; } = string.Empty;
+    public decimal? HargaSatuanUpah { get; set; }
+    public decimal? HargaSatuanMaterial { get; set; }
+    public decimal? HargaSatuanAlat { get; set; }
+}
+
+public class UpdateRabItemDto : CreateRabItemDto { }
+
+// ===================== MATERIAL REQUIREMENT (Kebutuhan Material & Pekerjaan) =====================
+public class MaterialRequirementLineDto
+{
+    public string IdLine { get; set; } = string.Empty;
+    public string IdDraft { get; set; } = string.Empty;
+    public string Jenis { get; set; } = string.Empty;
+    public string? IdRabItem { get; set; }
+    public string? KodeItemSnapshot { get; set; }
+    public string UraianPekerjaan { get; set; } = string.Empty;
+    public string Satuan { get; set; } = string.Empty;
+    public decimal VolumeKalkulasi { get; set; }
+    public string? CatatanKalkulasi { get; set; }
+    public decimal? VolumeKlaim { get; set; }
+    public int Urutan { get; set; }
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public class CreateMaterialRequirementLineDto
+{
+    public string IdDraft { get; set; } = string.Empty;
+    public string Jenis { get; set; } = "Pekerjaan";
+    public string? IdRabItem { get; set; }
+    public string? KodeItemSnapshot { get; set; }
+    public string UraianPekerjaan { get; set; } = string.Empty;
+    public string Satuan { get; set; } = string.Empty;
+    public decimal VolumeKalkulasi { get; set; }
+    public string? CatatanKalkulasi { get; set; }
+    public decimal? VolumeKlaim { get; set; }
+    public int Urutan { get; set; } = 0;
+}
+
+public class UpdateMaterialRequirementLineDto : CreateMaterialRequirementLineDto { }
+
+public class MaterialRequirementDraftDto
+{
+    public string IdDraft { get; set; } = string.Empty;
+    public string IdKontrak { get; set; } = string.Empty;
+    public string? NomorMrf { get; set; }
+    public string TagUnit { get; set; } = string.Empty;
+    public string? LokasiArea { get; set; }
+    public DateTime? TanggalRekomendasi { get; set; }
+    public string? Problem { get; set; }
+    public string? RekomendasiSolusi { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? RekomendasiDocuments { get; set; }
+    public string? GambarKerjaDocuments { get; set; }
+    public string? Catatan { get; set; }
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public KontrakSummaryDto? Kontrak { get; set; }
+    public List<MaterialRequirementLineDto> Lines { get; set; } = new();
+}
+
+public class CreateMaterialRequirementDraftDto
+{
+    public string IdKontrak { get; set; } = string.Empty;
+    public string? NomorMrf { get; set; }
+    public string TagUnit { get; set; } = string.Empty;
+    public string? LokasiArea { get; set; }
+    public DateTime? TanggalRekomendasi { get; set; }
+    public string? Problem { get; set; }
+    public string? RekomendasiSolusi { get; set; }
+    public string Status { get; set; } = "Draft";
+    public string? RekomendasiDocuments { get; set; }
+    public string? GambarKerjaDocuments { get; set; }
+    public string? Catatan { get; set; }
+}
+
+public class UpdateMaterialRequirementDraftDto : CreateMaterialRequirementDraftDto { }
+
 public class CreateKonfigurasiDto
 {
     public string NamaSetting { get; set; } = string.Empty;
