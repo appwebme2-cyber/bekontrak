@@ -10,11 +10,13 @@ public record AiDocumentRef(string Key, string MimeType);
 public class AiExtractionService
 {
     private readonly string? _apiKey;
+    private readonly string _model;
     private readonly R2StorageService _r2;
 
     public AiExtractionService(IConfiguration config, R2StorageService r2)
     {
         _apiKey = config["Anthropic:ApiKey"];
+        _model = string.IsNullOrWhiteSpace(config["Anthropic:Model"]) ? "claude-sonnet-5-5" : config["Anthropic:Model"]!;
         _r2 = r2;
     }
 
@@ -105,7 +107,7 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
 
         var response = await client.Messages.Create(new MessageCreateParams
         {
-            Model = "claude-sonnet-5-5",
+            Model = _model,
             MaxTokens = 8000,
             System = SystemPrompt,
             OutputConfig = new OutputConfig
