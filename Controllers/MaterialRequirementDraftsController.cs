@@ -1,9 +1,11 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.DTOs;
 using RefineryContractAPI.Models;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Controllers;
 
@@ -13,7 +15,12 @@ namespace RefineryContractAPI.Controllers;
 public class MaterialRequirementDraftsController : ControllerBase
 {
     private readonly AppDbContext _context;
-    public MaterialRequirementDraftsController(AppDbContext context) => _context = context;
+    private readonly AiExtractionService _ai;
+    public MaterialRequirementDraftsController(AppDbContext context, AiExtractionService ai)
+    {
+        _context = context;
+        _ai = ai;
+    }
 
     private static KontrakSummaryDto? ToKontrakSummary(Kontrak? k)
     {
@@ -189,6 +196,66 @@ public class MaterialRequirementDraftsController : ControllerBase
         {
             return StatusCode(500, new { message = $"Gagal menghapus draft kebutuhan: {DescribeException(ex)}" });
         }
+    }
+
+    [HttpPost("{id}/extract-ai")]
+    public async Task<IActionResult> ExtractAi(string id)
+    {
+        try
+        {
+            var draft = await _context.MaterialRequirementDrafts.FindAsync(id);
+            if (draft == null) return NotFound();
+
+            var documents = new List<AiDocumentRef>();
+            documents.AddRange(ParseDocumentsForAi(draft.RekomendasiDocuments));
+            documents.AddRange(ParseDocumentsForAi(draft.GambarKerjaDocuments));
+
+            if (documents.Count == 0)
+                return BadRequest(new { message = "Belum ada dokumen Rekomendasi/Gambar Kerja yang diupload." });
+
+            var result = await _ai.ExtractAsync(documents);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal ekstrak dengan AI: {DescribeException(ex)}" });
+        }
+    }
+
+    // Dokumen tersimpan sebagai JSON string array { id, name, size, type, url } di
+    // kolom RekomendasiDocuments/GambarKerjaDocuments (pola sama seperti ContractDocuments).
+    // url berbentuk ".../api/FileUpload/file/{key}" - resolve key-nya di sini supaya
+    // AiExtractionService bisa ambil bytes langsung dari R2 (server-to-server, tanpa token).
+    private static List<AiDocumentRef> ParseDocumentsForAi(string? documentsJson)
+    {
+        var result = new List<AiDocumentRef>();
+        if (string.IsNullOrWhiteSpace(documentsJson)) return result;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(documentsJson);
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return result;
+
+            const string marker = "/api/FileUpload/file/";
+            foreach (var item in doc.RootElement.EnumerateArray())
+            {
+                var url = item.TryGetProperty("url", out var urlEl) ? urlEl.GetString() : null;
+                var type = item.TryGetProperty("type", out var typeEl) ? typeEl.GetString() : null;
+                if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(type)) continue;
+
+                var idx = url.IndexOf(marker, StringComparison.Ordinal);
+                if (idx < 0) continue;
+
+                var key = url[(idx + marker.Length)..];
+                result.Add(new AiDocumentRef(key, type));
+            }
+        }
+        catch (JsonException)
+        {
+            // dokumen tersimpan dalam format tak terduga - lewati saja, bukan fatal
+        }
+
+        return result;
     }
 
     // Gabungkan pesan exception + inner exception (DbUpdateException dari EF

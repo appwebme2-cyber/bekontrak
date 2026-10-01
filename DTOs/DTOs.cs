@@ -471,6 +471,24 @@ public class CreateMaterialRequirementDraftDto
 
 public class UpdateMaterialRequirementDraftDto : CreateMaterialRequirementDraftDto { }
 
+// ===================== AI EXTRACTION (opsional) =====================
+public class ExtractMaterialRequirementResultDto
+{
+    public string? Problem { get; set; }
+    public string? RekomendasiSolusi { get; set; }
+    public string? TagUnit { get; set; }
+    public List<ExtractedLineDto> Lines { get; set; } = new();
+}
+
+public class ExtractedLineDto
+{
+    public string Jenis { get; set; } = "Pekerjaan"; // Pekerjaan | Material
+    public string UraianPekerjaan { get; set; } = string.Empty;
+    public string Satuan { get; set; } = string.Empty;
+    public decimal VolumeKalkulasi { get; set; }
+    public string? CatatanKalkulasi { get; set; }
+}
+
 public class CreateKonfigurasiDto
 {
     public string NamaSetting { get; set; } = string.Empty;

@@ -59,6 +59,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton<R2StorageService>();
 builder.Services.AddSingleton<FileTokenService>();
+builder.Services.AddSingleton<AiExtractionService>();
 builder.Services.AddControllers();
 builder.Services.AddDirectoryBrowser();
 
