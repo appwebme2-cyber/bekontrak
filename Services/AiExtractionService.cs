@@ -6,6 +6,7 @@ using RefineryContractAPI.DTOs;
 namespace RefineryContractAPI.Services;
 
 public record AiDocumentRef(string Key, string MimeType);
+public record AiRabItemContext(string KodeItem, string UraianPekerjaan, string Satuan);
 
 public class AiExtractionService
 {
@@ -29,10 +30,11 @@ Tugas Anda:
 4. Untuk perhitungan volume pekerjaan berbasis pipa/geometri, pakai rumus teknik standar: keliling pipa = π×D, luas permukaan cat = π×D×panjang, volume potong plat = ((π×OD)+(π×ID))×jumlah/1000, dan sejenisnya — tuliskan rumus/alasan yang dipakai di catatanKalkulasi.
 5. Kalau ada bagian yang tidak terbaca jelas, tulisan tangan ambigu, atau Anda tidak yakin, SEBUTKAN eksplisit di catatanKalkulasi (mis. ""dimensi tidak terbaca jelas, mohon verifikasi manual"") alih-alih menebak tanpa keterangan.
 6. Jangan mengarang data yang sama sekali tidak ada di dokumen — kosongkan field tersebut kalau memang tidak tersedia.
+7. Kalau daftar item RAB kontrak disertakan di bawah ini, untuk SETIAP baris pekerjaan/material yang Anda hasilkan, cek apakah ada item RAB yang jenis pekerjaan & satuannya paling cocok. Kalau ada yang cocok, isi field kodeItem dengan KODE PERSIS (sama persis, case-sensitive) dari daftar itu. Kalau tidak ada yang cukup cocok, KOSONGKAN kodeItem — JANGAN PERNAH mengarang kode yang tidak ada di daftar.
 
 Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indonesia.";
 
-    public async Task<ExtractMaterialRequirementResultDto> ExtractAsync(List<AiDocumentRef> documents)
+    public async Task<ExtractMaterialRequirementResultDto> ExtractAsync(List<AiDocumentRef> documents, List<AiRabItemContext>? existingRabItems = null)
     {
         if (string.IsNullOrWhiteSpace(_apiKey))
             throw new InvalidOperationException("Anthropic API key belum dikonfigurasi. Hubungi admin untuk mengatur environment variable Anthropic__ApiKey.");
@@ -71,6 +73,15 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
         if (contentBlocks.Count == 0)
             throw new InvalidOperationException("Tidak ada dokumen PDF/gambar yang bisa dibaca AI (hanya PDF/JPEG/PNG yang didukung).");
 
+        if (existingRabItems is { Count: > 0 })
+        {
+            var rabList = string.Join("\n", existingRabItems.Select(r => $"- {r.KodeItem} | {r.UraianPekerjaan} | satuan: {r.Satuan}"));
+            contentBlocks.Add(new TextBlockParam
+            {
+                Text = $"Daftar item RAB kontrak ini yang sudah tersedia (kode | uraian | satuan):\n{rabList}\n\nCocokkan baris yang Anda hasilkan ke kode di atas kalau relevan (lihat instruksi poin 7)."
+            });
+        }
+
         contentBlocks.Add(new TextBlockParam
         {
             Text = "Tolong analisis dokumen di atas dan hasilkan draft kebutuhan material & pekerjaan sesuai instruksi."
@@ -93,6 +104,7 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
                         properties = new
                         {
                             jenis = new { type = "string", @enum = new[] { "Pekerjaan", "Material" } },
+                            kodeItem = new { type = "string", description = "Kode item RAB yang cocok dari daftar yang diberikan, kosongkan kalau tidak ada yang cocok" },
                             uraianPekerjaan = new { type = "string" },
                             satuan = new { type = "string" },
                             volumeKalkulasi = new { type = "number" },

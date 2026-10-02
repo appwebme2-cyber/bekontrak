@@ -483,6 +483,7 @@ public class ExtractMaterialRequirementResultDto
 public class ExtractedLineDto
 {
     public string Jenis { get; set; } = "Pekerjaan"; // Pekerjaan | Material
+    public string? KodeItem { get; set; }
     public string UraianPekerjaan { get; set; } = string.Empty;
     public string Satuan { get; set; } = string.Empty;
     public decimal VolumeKalkulasi { get; set; }

@@ -213,7 +213,12 @@ public class MaterialRequirementDraftsController : ControllerBase
             if (documents.Count == 0)
                 return BadRequest(new { message = "Belum ada dokumen Rekomendasi/Gambar Kerja yang diupload." });
 
-            var result = await _ai.ExtractAsync(documents);
+            var existingRabItems = await _context.RabItems
+                .Where(r => r.IdKontrak == draft.IdKontrak)
+                .Select(r => new AiRabItemContext(r.KodeItem, r.UraianPekerjaan, r.Satuan))
+                .ToListAsync();
+
+            var result = await _ai.ExtractAsync(documents, existingRabItems);
             return Ok(result);
         }
         catch (Exception ex)
