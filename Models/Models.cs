@@ -459,6 +459,18 @@ public class LogAkses
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+// Kontrak favorit per user, supaya kontrak yang sering dibuka cepat ditemukan.
+public class KontrakFavorit
+{
+    [Key]
+    public string IdFavorit { get; set; } = Guid.NewGuid().ToString();
+    [Required]
+    public string IdUser { get; set; } = string.Empty;
+    [Required]
+    public string IdKontrak { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 // Master item RAB per kontrak (kode item, uraian, satuan, harga satuan), diinput
 // manual sekali per kontrak lalu dipakai berulang untuk mencocokkan draft kebutuhan.
 public class RabItem

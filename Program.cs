@@ -266,6 +266,23 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"[Startup] Table creation warning (rab_item/material_requirement_*): {ex.Message}");
     }
+
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS kontrak_favorit (
+                id_favorit TEXT PRIMARY KEY,
+                id_user TEXT NOT NULL,
+                id_kontrak TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_kontrak_favorit_user_kontrak ON kontrak_favorit(id_user, id_kontrak);
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Table creation warning (kontrak_favorit): {ex.Message}");
+    }
 }
 
 // ==================== MIDDLEWARE ====================

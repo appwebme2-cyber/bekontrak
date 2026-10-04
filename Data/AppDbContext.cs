@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<Planner> Planners { get; set; }
     public DbSet<TokenBlacklist> TokenBlacklists { get; set; }
     public DbSet<LogAkses> LogAkses { get; set; }
+    public DbSet<KontrakFavorit> KontrakFavorits { get; set; }
     public DbSet<RabItem> RabItems { get; set; }
     public DbSet<MaterialRequirementDraft> MaterialRequirementDrafts { get; set; }
     public DbSet<MaterialRequirementLine> MaterialRequirementLines { get; set; }
@@ -54,6 +55,13 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<DireksiPekerjaan>().ToTable("direksi_pekerjaan");
         modelBuilder.Entity<ProgramKerja>().ToTable("program_kerja");
         modelBuilder.Entity<Planner>().ToTable("planner");
+        modelBuilder.Entity<KontrakFavorit>().ToTable("kontrak_favorit");
+        modelBuilder.Entity<KontrakFavorit>(e => {
+            e.Property(p => p.IdFavorit).HasColumnName("id_favorit");
+            e.Property(p => p.IdUser).HasColumnName("id_user");
+            e.Property(p => p.IdKontrak).HasColumnName("id_kontrak");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+        });
         modelBuilder.Entity<RabItem>().ToTable("rab_item");
         modelBuilder.Entity<MaterialRequirementDraft>().ToTable("material_requirement_draft");
         modelBuilder.Entity<MaterialRequirementLine>().ToTable("material_requirement_line");
