@@ -58,12 +58,32 @@ public class AmandemenController : ControllerBase
         };
 
         _context.AmandemenKontraks.Add(amandemen);
+        await _context.SaveChangesAsync();
+        await SyncKontrakDariAmandemenAsync(dto.IdKontrak);
 
-        var kontrak = await _context.Kontraks.FindAsync(dto.IdKontrak);
-        if (kontrak != null) kontrak.HasAmendment = true;
+        return Ok(new { message = "Berhasil", idAmandemen = amandemen.IdAmandemen });
+    }
+
+    // Salin tanggal mulai/selesai baru dari amandemen terakhir (nomor urut tertinggi yang
+    // mengisi tanggal itu) ke kolom kontrak, supaya seluruh tampilan (detail, kartu, dashboard,
+    // perhitungan durasi) memakai tanggal amandemen. Tanpa ini kontrak hanya ditandai
+    // has_amendment=true sementara tanggalnya tetap tanggal lama.
+    private async Task SyncKontrakDariAmandemenAsync(string idKontrak)
+    {
+        var kontrak = await _context.Kontraks.FindAsync(idKontrak);
+        if (kontrak == null) return;
+
+        var amandemens = await _context.AmandemenKontraks
+            .Where(a => a.IdKontrak == idKontrak)
+            .OrderByDescending(a => a.NomorUrut)
+            .ToListAsync();
+
+        kontrak.HasAmendment = amandemens.Count > 0;
+        kontrak.TanggalMulaiBaru = amandemens.FirstOrDefault(a => a.TanggalMulaiBaru != null)?.TanggalMulaiBaru;
+        kontrak.TanggalSelesaiBaru = amandemens.FirstOrDefault(a => a.TanggalSelesaiBaru != null)?.TanggalSelesaiBaru;
+        kontrak.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Berhasil", idAmandemen = amandemen.IdAmandemen });
     }
 
     [HttpPut("{id}")]
@@ -83,6 +103,8 @@ public class AmandemenController : ControllerBase
         amandemen.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        await SyncKontrakDariAmandemenAsync(amandemen.IdKontrak);
+
         return Ok(new { message = "Berhasil", idAmandemen = amandemen.IdAmandemen });
     }
 
@@ -96,13 +118,7 @@ public class AmandemenController : ControllerBase
         _context.AmandemenKontraks.Remove(amandemen);
         await _context.SaveChangesAsync();
 
-        var remaining = await _context.AmandemenKontraks.AnyAsync(a => a.IdKontrak == idKontrak);
-        if (!remaining)
-        {
-            var kontrak = await _context.Kontraks.FindAsync(idKontrak);
-            if (kontrak != null) kontrak.HasAmendment = false;
-            await _context.SaveChangesAsync();
-        }
+        await SyncKontrakDariAmandemenAsync(idKontrak);
 
         return Ok(new { message = "Amandemen berhasil dihapus" });
     }

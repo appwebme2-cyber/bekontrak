@@ -283,6 +283,43 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"[Startup] Table creation warning (kontrak_favorit): {ex.Message}");
     }
+
+    // Backfill: kontrak yang punya amandemen di tabel amandemen_kontrak tapi kolom tanggal
+    // amandemen-nya di tabel kontrak masih kosong/usang (sebelum AmandemenController
+    // menyinkronkannya). Amandemen terakhir (nomor_urut tertinggi yang mengisi tanggal) menang;
+    // idempotent karena hanya mengubah baris yang nilainya berbeda.
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            UPDATE kontrak k SET tanggal_selesai_baru = a.tanggal_selesai_baru
+            FROM (
+                SELECT DISTINCT ON (id_kontrak) id_kontrak, tanggal_selesai_baru
+                FROM amandemen_kontrak
+                WHERE tanggal_selesai_baru IS NOT NULL
+                ORDER BY id_kontrak, nomor_urut DESC
+            ) a
+            WHERE k.id_kontrak = a.id_kontrak
+              AND k.tanggal_selesai_baru IS DISTINCT FROM a.tanggal_selesai_baru;
+
+            UPDATE kontrak k SET tanggal_mulai_baru = a.tanggal_mulai_baru
+            FROM (
+                SELECT DISTINCT ON (id_kontrak) id_kontrak, tanggal_mulai_baru
+                FROM amandemen_kontrak
+                WHERE tanggal_mulai_baru IS NOT NULL
+                ORDER BY id_kontrak, nomor_urut DESC
+            ) a
+            WHERE k.id_kontrak = a.id_kontrak
+              AND k.tanggal_mulai_baru IS DISTINCT FROM a.tanggal_mulai_baru;
+
+            UPDATE kontrak SET has_amendment = TRUE
+            WHERE id_kontrak IN (SELECT id_kontrak FROM amandemen_kontrak)
+              AND has_amendment IS DISTINCT FROM TRUE;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Backfill warning (tanggal amandemen kontrak): {ex.Message}");
+    }
 }
 
 // ==================== MIDDLEWARE ====================
