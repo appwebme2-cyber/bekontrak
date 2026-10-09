@@ -493,6 +493,7 @@ public class ExtractedLineDto
     public string UraianPekerjaan { get; set; } = string.Empty;
     public string Satuan { get; set; } = string.Empty;
     public decimal VolumeKalkulasi { get; set; }
+    public decimal? VolumeKlaim { get; set; }
     public string? CatatanKalkulasi { get; set; }
 }
 

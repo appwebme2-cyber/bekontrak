@@ -32,6 +32,8 @@ Tugas Anda:
 6. Jangan mengarang data yang sama sekali tidak ada di dokumen — kosongkan field tersebut kalau memang tidak tersedia.
 7. Kalau daftar item RAB kontrak disertakan di bawah ini, untuk SETIAP baris pekerjaan/material yang Anda hasilkan, cek apakah ada item RAB yang jenis pekerjaan & satuannya paling cocok. Kalau ada yang cocok, isi field kodeItem dengan KODE PERSIS (sama persis, case-sensitive) dari daftar itu. Kalau tidak ada yang cukup cocok, KOSONGKAN kodeItem — JANGAN PERNAH mengarang kode yang tidak ada di daftar.
 
+8. Kalau dokumen memuat rincian biaya/tagihan kontraktor (mis. ""PERINCIAN BIAYA TAGIHAN PEKERJAAN"", checklist actual pekerjaan, atau laporan unit price) berisi volume per item, isi volumeKlaim dengan volume yang DITAGIHKAN pada item yang sesuai. Pakai lembar tagihan final/aktual, BUKAN lembar prognosa/rencana. Kalau item itu tidak ada di rincian tagihan, atau dokumen tidak memuat rincian tagihan sama sekali, KOSONGKAN volumeKlaim. JANGAN menyalin volumeKalkulasi ke volumeKlaim dan jangan menebak.
+
 Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indonesia.";
 
     public async Task<ExtractMaterialRequirementResultDto> ExtractAsync(List<AiDocumentRef> documents, List<AiRabItemContext>? existingRabItems = null)
@@ -108,6 +110,7 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
                             uraianPekerjaan = new { type = "string" },
                             satuan = new { type = "string" },
                             volumeKalkulasi = new { type = "number" },
+                            volumeKlaim = new { type = "number", description = "Volume yang ditagihkan kontraktor pada item ini menurut rincian tagihan di dokumen, kosongkan kalau tidak ada" },
                             catatanKalkulasi = new { type = "string" }
                         },
                         required = new[] { "jenis", "uraianPekerjaan", "satuan", "volumeKalkulasi" },
