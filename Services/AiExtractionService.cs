@@ -110,11 +110,14 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
                             volumeKalkulasi = new { type = "number" },
                             catatanKalkulasi = new { type = "string" }
                         },
-                        required = new[] { "jenis", "uraianPekerjaan", "satuan", "volumeKalkulasi" }
+                        required = new[] { "jenis", "uraianPekerjaan", "satuan", "volumeKalkulasi" },
+                        additionalProperties = false
                     }
                 }
             }),
-            ["required"] = JsonSerializer.SerializeToElement(new[] { "problem", "rekomendasiSolusi", "lines" })
+            ["required"] = JsonSerializer.SerializeToElement(new[] { "problem", "rekomendasiSolusi", "lines" }),
+            // Structured output Claude mewajibkan additionalProperties:false di setiap objek
+            ["additionalProperties"] = JsonSerializer.SerializeToElement(false)
         };
 
         var response = await client.Messages.Create(new MessageCreateParams
