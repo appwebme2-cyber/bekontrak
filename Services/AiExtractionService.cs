@@ -137,7 +137,9 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
         var response = await client.Messages.Create(new MessageCreateParams
         {
             Model = _model,
-            MaxTokens = 8000,
+            // Token "berpikir" Claude ikut terhitung di batas ini; 8000 terbukti kurang untuk dokumen
+            // dengan puluhan baris sehingga JSON terpotong di tengah.
+            MaxTokens = 16000,
             System = SystemPrompt,
             OutputConfig = new OutputConfig
             {
@@ -145,6 +147,9 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
             },
             Messages = [new() { Role = Role.User, Content = contentBlocks }]
         });
+
+        if (response.StopReason == "max_tokens")
+            throw new InvalidOperationException("Hasil AI terpotong karena dokumen terlalu panjang/kompleks. Coba pecah dokumen menjadi bagian yang lebih kecil, atau upload hanya halaman yang relevan.");
 
         var text = response.Content
             .Select(b => b.Value)
