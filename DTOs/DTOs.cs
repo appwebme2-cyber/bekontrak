@@ -400,6 +400,12 @@ public class CreateRabItemDto
 
 public class UpdateRabItemDto : CreateRabItemDto { }
 
+public class BulkCreateRabItemsDto
+{
+    public string IdKontrak { get; set; } = string.Empty;
+    public List<CreateRabItemDto> Items { get; set; } = new();
+}
+
 // ===================== MATERIAL REQUIREMENT (Kebutuhan Material & Pekerjaan) =====================
 public class MaterialRequirementLineDto
 {

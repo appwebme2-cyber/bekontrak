@@ -80,6 +80,63 @@ public class RabItemsController : ControllerBase
         }
     }
 
+    // Impor banyak item sekaligus (mis. dari file Excel RAB). Item yang kode + uraiannya sudah
+    // ada di kontrak yang sama dilewati supaya impor ulang tidak menggandakan data.
+    [HttpPost("bulk")]
+    public async Task<IActionResult> CreateBulk([FromBody] BulkCreateRabItemsDto dto)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(dto.IdKontrak))
+                return BadRequest(new { message = "Kontrak belum dipilih." });
+            if (dto.Items == null || dto.Items.Count == 0)
+                return BadRequest(new { message = "Tidak ada item untuk diimpor." });
+
+            static string Key(string kode, string uraian) =>
+                $"{kode.Trim().ToLowerInvariant()}|{uraian.Trim().ToLowerInvariant()}";
+
+            var existing = await _context.RabItems
+                .Where(r => r.IdKontrak == dto.IdKontrak)
+                .Select(r => new { r.KodeItem, r.UraianPekerjaan })
+                .ToListAsync();
+            var seen = new HashSet<string>(existing.Select(e => Key(e.KodeItem, e.UraianPekerjaan)));
+
+            var added = 0;
+            var skipped = 0;
+            foreach (var item in dto.Items)
+            {
+                if (string.IsNullOrWhiteSpace(item.KodeItem) ||
+                    string.IsNullOrWhiteSpace(item.UraianPekerjaan) ||
+                    string.IsNullOrWhiteSpace(item.Satuan) ||
+                    !seen.Add(Key(item.KodeItem, item.UraianPekerjaan)))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                _context.RabItems.Add(new RabItem
+                {
+                    IdKontrak = dto.IdKontrak,
+                    KodeItem = item.KodeItem.Trim(),
+                    Kategori = item.Kategori,
+                    UraianPekerjaan = item.UraianPekerjaan.Trim(),
+                    Satuan = item.Satuan.Trim(),
+                    HargaSatuanUpah = item.HargaSatuanUpah,
+                    HargaSatuanMaterial = item.HargaSatuanMaterial,
+                    HargaSatuanAlat = item.HargaSatuanAlat
+                });
+                added++;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { added, skipped });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal impor item RAB: {DescribeException(ex)}" });
+        }
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateRabItemDto dto)
     {
