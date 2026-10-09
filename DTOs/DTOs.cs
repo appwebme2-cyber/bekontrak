@@ -489,7 +489,10 @@ public class ExtractMaterialRequirementResultDto
 public class ExtractedLineDto
 {
     public string Jenis { get; set; } = "Pekerjaan"; // Pekerjaan | Material
-    public string? KodeItem { get; set; }
+    public string? RabRef { get; set; }      // nomor referensi dari AI, dipakai internal lalu dikosongkan
+    public string? IdRabItem { get; set; }   // item RAB yang cocok (sudah diterjemahkan dari RabRef)
+    public string? KodeItem { get; set; }    // kode item RAB yang cocok, untuk tampilan
+    public string? KodeDokumen { get; set; } // kode yang tertulis di dokumen, hanya informasi
     public string UraianPekerjaan { get; set; } = string.Empty;
     public string Satuan { get; set; } = string.Empty;
     public decimal VolumeKalkulasi { get; set; }

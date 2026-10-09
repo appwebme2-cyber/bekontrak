@@ -6,7 +6,7 @@ using RefineryContractAPI.DTOs;
 namespace RefineryContractAPI.Services;
 
 public record AiDocumentRef(string Key, string MimeType);
-public record AiRabItemContext(string KodeItem, string UraianPekerjaan, string Satuan);
+public record AiRabItemContext(string IdRabItem, string KodeItem, string UraianPekerjaan, string Satuan);
 
 public class AiExtractionService
 {
@@ -30,7 +30,8 @@ Tugas Anda:
 4. Untuk perhitungan volume pekerjaan berbasis pipa/geometri, pakai rumus teknik standar: keliling pipa = π×D, luas permukaan cat = π×D×panjang, volume potong plat = ((π×OD)+(π×ID))×jumlah/1000, dan sejenisnya — tuliskan rumus/alasan yang dipakai di catatanKalkulasi.
 5. Kalau ada bagian yang tidak terbaca jelas, tulisan tangan ambigu, atau Anda tidak yakin, SEBUTKAN eksplisit di catatanKalkulasi (mis. ""dimensi tidak terbaca jelas, mohon verifikasi manual"") alih-alih menebak tanpa keterangan.
 6. Jangan mengarang data yang sama sekali tidak ada di dokumen — kosongkan field tersebut kalau memang tidak tersedia.
-7. Kalau daftar item RAB kontrak disertakan di bawah ini, untuk SETIAP baris pekerjaan/material yang Anda hasilkan, cek apakah ada item RAB yang jenis pekerjaan & satuannya paling cocok. Kalau ada yang cocok, isi field kodeItem dengan KODE PERSIS (sama persis, case-sensitive) dari daftar itu. Kalau tidak ada yang cukup cocok, KOSONGKAN kodeItem — JANGAN PERNAH mengarang kode yang tidak ada di daftar.
+7. Kalau daftar item RAB kontrak disertakan, tiap item punya NOMOR REFERENSI di dalam kurung siku (mis. [R12]). Untuk SETIAP baris pekerjaan/material yang Anda hasilkan, cek apakah ada item RAB yang jenis pekerjaan & satuannya paling cocok. Kalau ada yang cocok, isi field rabRef dengan nomor referensi itu persis (mis. ""R12""). Kalau tidak ada yang cukup cocok, KOSONGKAN rabRef — JANGAN PERNAH mengarang nomor referensi yang tidak ada di daftar. Pencocokan hanya berdasarkan uraian dan satuan; abaikan kode item untuk menentukan kecocokan karena kode bisa kembar.
+7b. Kalau dokumen sendiri mencantumkan kode item untuk pekerjaan itu (mis. di rincian biaya/tagihan, seperti 2.1.1.2.13), isi kodeDokumen dengan kode tersebut persis seperti tertulis. Kosongkan kalau tidak ada. Ini hanya informasi tambahan, terpisah dari rabRef.
 
 8. Kalau dokumen memuat rincian biaya/tagihan kontraktor (mis. ""PERINCIAN BIAYA TAGIHAN PEKERJAAN"", checklist actual pekerjaan, atau laporan unit price) berisi volume per item, isi volumeKlaim dengan volume yang DITAGIHKAN pada item yang sesuai. Pakai lembar tagihan final/aktual, BUKAN lembar prognosa/rencana. Kalau item itu tidak ada di rincian tagihan, atau dokumen tidak memuat rincian tagihan sama sekali, KOSONGKAN volumeKlaim. JANGAN menyalin volumeKalkulasi ke volumeKlaim dan jangan menebak.
 
@@ -75,12 +76,21 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
         if (contentBlocks.Count == 0)
             throw new InvalidOperationException("Tidak ada dokumen PDF/gambar yang bisa dibaca AI (hanya PDF/JPEG/PNG yang didukung).");
 
+        // Tiap item RAB diberi nomor referensi unik (R1, R2, ...) karena kode item bisa kembar
+        // dalam satu RAB (penomoran dimulai ulang di tiap bagian). AI mengembalikan nomor ini,
+        // lalu diterjemahkan kembali ke item RAB yang tepat setelah respons diterima.
+        Dictionary<string, AiRabItemContext>? refMap = null;
         if (existingRabItems is { Count: > 0 })
         {
-            var rabList = string.Join("\n", existingRabItems.Select(r => $"- {r.KodeItem} | {r.UraianPekerjaan} | satuan: {r.Satuan}"));
+            refMap = new Dictionary<string, AiRabItemContext>();
+            for (var i = 0; i < existingRabItems.Count; i++)
+                refMap[$"R{i + 1}"] = existingRabItems[i];
+
+            var rabList = string.Join("\n", refMap.Select(kv =>
+                $"[{kv.Key}] {kv.Value.KodeItem} | {kv.Value.UraianPekerjaan} | satuan: {kv.Value.Satuan}"));
             contentBlocks.Add(new TextBlockParam
             {
-                Text = $"Daftar item RAB kontrak ini yang sudah tersedia (kode | uraian | satuan):\n{rabList}\n\nCocokkan baris yang Anda hasilkan ke kode di atas kalau relevan (lihat instruksi poin 7)."
+                Text = $"Daftar item RAB kontrak ini yang sudah tersedia ([nomor referensi] kode | uraian | satuan):\n{rabList}\n\nCocokkan baris yang Anda hasilkan ke nomor referensi di atas kalau relevan (lihat instruksi poin 7)."
             });
         }
 
@@ -106,7 +116,8 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
                         properties = new
                         {
                             jenis = new { type = "string", @enum = new[] { "Pekerjaan", "Material" } },
-                            kodeItem = new { type = "string", description = "Kode item RAB yang cocok dari daftar yang diberikan, kosongkan kalau tidak ada yang cocok" },
+                            rabRef = new { type = "string", description = "Nomor referensi item RAB yang cocok dari daftar yang diberikan (mis. R12), kosongkan kalau tidak ada yang cocok" },
+                            kodeDokumen = new { type = "string", description = "Kode item yang tertulis di dokumen untuk pekerjaan ini (mis. di rincian biaya), kosongkan kalau tidak ada" },
                             uraianPekerjaan = new { type = "string" },
                             satuan = new { type = "string" },
                             volumeKalkulasi = new { type = "number" },
@@ -149,6 +160,20 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
             PropertyNameCaseInsensitive = true
         });
 
-        return result ?? new ExtractMaterialRequirementResultDto();
+        result ??= new ExtractMaterialRequirementResultDto();
+
+        // Terjemahkan nomor referensi dari AI ke item RAB sebenarnya; nomor yang tidak dikenal diabaikan
+        foreach (var line in result.Lines)
+        {
+            var key = line.RabRef?.Trim().Trim('[', ']').ToUpperInvariant();
+            if (refMap != null && !string.IsNullOrEmpty(key) && refMap.TryGetValue(key, out var item))
+            {
+                line.IdRabItem = item.IdRabItem;
+                line.KodeItem = item.KodeItem;
+            }
+            line.RabRef = null;
+        }
+
+        return result;
     }
 }

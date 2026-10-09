@@ -215,7 +215,8 @@ public class MaterialRequirementDraftsController : ControllerBase
 
             var existingRabItems = await _context.RabItems
                 .Where(r => r.IdKontrak == draft.IdKontrak)
-                .Select(r => new AiRabItemContext(r.KodeItem, r.UraianPekerjaan, r.Satuan))
+                .OrderBy(r => r.CreatedAt)
+                .Select(r => new AiRabItemContext(r.IdRabItem, r.KodeItem, r.UraianPekerjaan, r.Satuan))
                 .ToListAsync();
 
             var result = await _ai.ExtractAsync(documents, existingRabItems);
