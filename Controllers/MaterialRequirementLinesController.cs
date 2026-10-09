@@ -113,6 +113,27 @@ public class MaterialRequirementLinesController : ControllerBase
         }
     }
 
+    // Hapus semua baris (pekerjaan + material) dalam satu draft sekaligus, dipakai saat hasil
+    // AI akan menggantikan isi draft supaya tidak dobel.
+    [HttpDelete("by-draft/{idDraft}")]
+    public async Task<IActionResult> DeleteByDraft(string idDraft)
+    {
+        try
+        {
+            var lines = await _context.MaterialRequirementLines
+                .Where(l => l.IdDraft == idDraft)
+                .ToListAsync();
+
+            _context.MaterialRequirementLines.RemoveRange(lines);
+            await _context.SaveChangesAsync();
+            return Ok(new { deleted = lines.Count });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal menghapus baris kebutuhan: {DescribeException(ex)}" });
+        }
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
