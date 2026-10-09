@@ -1,3 +1,7 @@
+using System.Collections.Concurrent;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,10 +20,25 @@ public class MaterialRequirementDraftsController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly AiExtractionService _ai;
-    public MaterialRequirementDraftsController(AppDbContext context, AiExtractionService ai)
+    private readonly IConfiguration _config;
+    public MaterialRequirementDraftsController(AppDbContext context, AiExtractionService ai, IConfiguration config)
     {
         _context = context;
         _ai = ai;
+        _config = config;
+    }
+
+    // Pembatasan percobaan PIN per user: 5 kali salah berturut-turut mengunci 10 menit,
+    // supaya PIN 6 digit tidak bisa ditebak lewat panggilan API berulang.
+    private const int MaxPinFails = 5;
+    private static readonly TimeSpan PinLockDuration = TimeSpan.FromMinutes(10);
+    private static readonly ConcurrentDictionary<string, (int Fails, DateTime LockedUntil)> PinAttempts = new();
+
+    private static bool PinMatches(string? provided, string expected)
+    {
+        var a = Encoding.UTF8.GetBytes(provided ?? string.Empty);
+        var b = Encoding.UTF8.GetBytes(expected);
+        return a.Length == b.Length && CryptographicOperations.FixedTimeEquals(a, b);
     }
 
     private static KontrakSummaryDto? ToKontrakSummary(Kontrak? k)
@@ -199,10 +218,36 @@ public class MaterialRequirementDraftsController : ControllerBase
     }
 
     [HttpPost("{id}/extract-ai")]
-    public async Task<IActionResult> ExtractAi(string id)
+    public async Task<IActionResult> ExtractAi(string id, [FromBody] ExtractAiRequestDto dto)
     {
         try
         {
+            // PIN dibaca dari env variable "PIN" di server; tanpa PIN terkonfigurasi fitur ditolak (fail closed)
+            var expectedPin = _config["PIN"];
+            if (string.IsNullOrEmpty(expectedPin))
+                return StatusCode(503, new { message = "PIN belum dikonfigurasi di server. Hubungi admin untuk menambahkan environment variable PIN." });
+
+            var userKey = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "anonymous";
+            if (PinAttempts.TryGetValue(userKey, out var attempt) && attempt.LockedUntil > DateTime.UtcNow)
+            {
+                var minutes = Math.Ceiling((attempt.LockedUntil - DateTime.UtcNow).TotalMinutes);
+                return StatusCode(429, new { message = $"Terlalu banyak PIN salah. Coba lagi dalam {minutes} menit." });
+            }
+
+            if (!PinMatches(dto?.Pin, expectedPin))
+            {
+                PinAttempts.AddOrUpdate(
+                    userKey,
+                    _ => (1, DateTime.MinValue),
+                    (_, old) =>
+                    {
+                        var fails = (old.LockedUntil > DateTime.MinValue && old.LockedUntil <= DateTime.UtcNow) ? 1 : old.Fails + 1;
+                        return fails >= MaxPinFails ? (0, DateTime.UtcNow.Add(PinLockDuration)) : (fails, DateTime.MinValue);
+                    });
+                return StatusCode(403, new { message = "PIN salah." });
+            }
+            PinAttempts.TryRemove(userKey, out _);
+
             var draft = await _context.MaterialRequirementDrafts.FindAsync(id);
             if (draft == null) return NotFound();
 

@@ -478,6 +478,11 @@ public class CreateMaterialRequirementDraftDto
 public class UpdateMaterialRequirementDraftDto : CreateMaterialRequirementDraftDto { }
 
 // ===================== AI EXTRACTION (opsional) =====================
+public class ExtractAiRequestDto
+{
+    public string? Pin { get; set; }
+}
+
 public class ExtractMaterialRequirementResultDto
 {
     public string? Problem { get; set; }
