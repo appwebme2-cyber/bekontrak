@@ -69,7 +69,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<R2StorageService>();
 builder.Services.AddSingleton<FileTokenService>();
 builder.Services.AddSingleton<AiExtractionService>();
-builder.Services.AddControllers();
+builder.Services.AddSingleton<RolePermissionService>();
+builder.Services.AddControllers(options => options.Filters.Add<ReadOnlyRoleFilter>());
 builder.Services.AddDirectoryBrowser();
 
 // ==================== CORS ====================
