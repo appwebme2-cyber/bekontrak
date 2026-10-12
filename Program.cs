@@ -25,7 +25,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // ==================== JWT AUTH ====================
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"]!;
+var secretKey = jwtSettings["SecretKey"] ?? string.Empty;
+
+// Di production kunci JWT wajib diisi lewat env variable JwtSettings__SecretKey. Kunci bawaan yang
+// pernah tertulis di repo dianggap bocor (siapa pun bisa memalsukan token), jadi backend menolak start.
+if (builder.Environment.IsProduction() && (secretKey.Length < 32 || secretKey.Contains("SuperSecretKey")))
+{
+    throw new InvalidOperationException(
+        "JwtSettings__SecretKey belum diatur dengan aman di environment production. " +
+        "Isi dengan teks acak minimal 32 karakter di Railway Variables.");
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -333,8 +342,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Swagger juga aktif di production untuk Railway testing
-if (app.Environment.IsProduction())
+// Di production Swagger mati (membuka daftar seluruh endpoint ke publik). Kalau perlu sementara,
+// nyalakan lewat env variable Swagger__Enabled=true lalu matikan lagi setelah selesai.
+if (app.Environment.IsProduction() && builder.Configuration["Swagger:Enabled"] == "true")
 {
     app.UseSwagger();
     app.UseSwaggerUI();

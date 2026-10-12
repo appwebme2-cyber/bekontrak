@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.DTOs;
 using RefineryContractAPI.Models;
+using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -24,15 +25,42 @@ public class AuthController : ControllerBase
         _config = config;
     }
 
+    // Pembatasan percobaan login: 5 kali salah berturut-turut untuk satu email mengunci login email
+    // itu 5 menit, supaya password tidak bisa ditebak lewat panggilan API berulang.
+    private const int MaxLoginFails = 5;
+    private static readonly TimeSpan LoginLockDuration = TimeSpan.FromMinutes(5);
+    private static readonly ConcurrentDictionary<string, (int Fails, DateTime LockedUntil)> LoginAttempts = new();
+
     // ==================== LOGIN ====================
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
+        var attemptKey = (dto.Email ?? string.Empty).Trim().ToLowerInvariant();
+
+        if (LoginAttempts.TryGetValue(attemptKey, out var attempt) && attempt.LockedUntil > DateTime.UtcNow)
+        {
+            var minutes = Math.Ceiling((attempt.LockedUntil - DateTime.UtcNow).TotalMinutes);
+            return StatusCode(429, new { message = $"Terlalu banyak percobaan login gagal. Coba lagi dalam {minutes} menit." });
+        }
+
         var user = await _context.Profiles
             .FirstOrDefaultAsync(u => u.Email == dto.Email);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+        {
+            if (LoginAttempts.Count > 10000) LoginAttempts.Clear(); // batasi memori dari email acak
+            LoginAttempts.AddOrUpdate(
+                attemptKey,
+                _ => (1, DateTime.MinValue),
+                (_, old) =>
+                {
+                    var fails = (old.LockedUntil > DateTime.MinValue && old.LockedUntil <= DateTime.UtcNow) ? 1 : old.Fails + 1;
+                    return fails >= MaxLoginFails ? (0, DateTime.UtcNow.Add(LoginLockDuration)) : (fails, DateTime.MinValue);
+                });
             return Unauthorized(new { message = "Email atau password salah" });
+        }
+
+        LoginAttempts.TryRemove(attemptKey, out _);
 
         if (!user.IsActive)
             return Unauthorized(new { message = "Akun Anda belum diaktifkan. Hubungi admin." });
