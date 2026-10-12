@@ -78,9 +78,14 @@ public class AuthController : ControllerBase
 
     // ==================== REGISTER (public) ====================
     // Self-register: role selalu 'user', isActive = false
+    // Dimatikan secara default karena user dibuat admin lewat admin-register; form daftar di
+    // halaman depan juga disembunyikan. Aktifkan hanya bila perlu dengan env var Auth__AllowPublicRegister=true.
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
+        if (!string.Equals(_config["Auth:AllowPublicRegister"], "true", StringComparison.OrdinalIgnoreCase))
+            return NotFound(new { message = "Pendaftaran mandiri tidak tersedia. Hubungi admin untuk dibuatkan akun." });
+
         var exists = await _context.Profiles.AnyAsync(u => u.Email == dto.Email);
         if (exists)
             return BadRequest(new { message = "Email sudah terdaftar" });
