@@ -9,7 +9,7 @@ namespace RefineryContractAPI.Controllers;
 
 /// <summary>
 /// API baca-saja (read-only) untuk sistem lain: daftar kontrak dan detailnya (amandemen + progress).
-/// Tanpa login user, tetapi wajib header "X-Api-Key" yang cocok dengan env var PublicApi__ApiKey.
+/// Tanpa login user, tetapi wajib header "X-Api-Key" (atau query ?apiKey=) yang cocok dengan env var PublicApi__ApiKey.
 /// Kalau env var itu belum diisi (atau kurang dari 32 karakter) endpoint ini mati (404).
 /// Sengaja TIDAK menampilkan tagihan, dokumen/file, bukti progress, dan harga satuan.
 /// </summary>
@@ -187,7 +187,10 @@ public class PublicContractsController : ControllerBase
         if (string.IsNullOrEmpty(configured) || configured.Length < MinKeyLength)
             return NotFound(new { message = "API publik tidak aktif." });
 
+        // Header lebih aman; ?apiKey= disediakan supaya bisa dibuka lewat link di browser.
         var provided = Request.Headers["X-Api-Key"].ToString();
+        if (string.IsNullOrEmpty(provided))
+            provided = Request.Query["apiKey"].ToString();
         var a = SHA256.HashData(Encoding.UTF8.GetBytes(provided));
         var b = SHA256.HashData(Encoding.UTF8.GetBytes(configured));
         if (!CryptographicOperations.FixedTimeEquals(a, b))
