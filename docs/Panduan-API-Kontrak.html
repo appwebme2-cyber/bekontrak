@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Panduan API Kontrak MAESTRO</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; color: #1f2937; line-height: 1.5; }
+  h1 { font-size: 22pt; margin: 0 0 4px; color: #002D6E; }
+  h2 { font-size: 14pt; color: #002D6E; border-bottom: 2px solid #E31E24; padding-bottom: 3px; margin: 22px 0 8px; }
+  h3 { font-size: 11.5pt; margin: 14px 0 4px; }
+  .sub { color: #6b7280; margin-bottom: 14px; }
+  code, pre { font-family: Consolas, "Courier New", monospace; font-size: 9.2pt; }
+  code { background: #f3f4f6; padding: 1px 4px; border-radius: 3px; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; page-break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; margin: 6px 0 10px; page-break-inside: auto; }
+  th, td { border: 1px solid #d1d5db; padding: 5px 8px; text-align: left; vertical-align: top; font-size: 9.6pt; }
+  th { background: #eef2f7; }
+  tr { page-break-inside: avoid; }
+  .note { background: #fff7ed; border-left: 4px solid #f59e0b; padding: 8px 12px; margin: 10px 0; page-break-inside: avoid; }
+  .ok { background: #ecfdf5; border-left: 4px solid #10b981; padding: 8px 12px; margin: 10px 0; page-break-inside: avoid; }
+  .method { display: inline-block; background: #10b981; color: #fff; font-weight: 700; font-size: 9pt; padding: 1px 7px; border-radius: 3px; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<h1>Panduan API Kontrak MAESTRO</h1>
+<div class="sub">API baca-saja (read-only) untuk menarik daftar kontrak, detail, amandemen, dan progress ke sistem lain.</div>
+
+<h2>1. Ringkasan</h2>
+<table>
+  <tr><th style="width:28%">Alamat dasar (Base URL)</th><td><code>https://api.maestrokilang.com</code><br>Cadangan: <code>https://bekontrak-production.up.railway.app</code></td></tr>
+  <tr><th>Format data</th><td>JSON (UTF-8)</td></tr>
+  <tr><th>Metode</th><td>Hanya <code>GET</code> (tidak bisa mengubah data)</td></tr>
+  <tr><th>Autentikasi</th><td>API key (tidak perlu login user)</td></tr>
+  <tr><th>Endpoint</th><td><code>/api/public/contracts</code> dan <code>/api/public/contracts/{id}</code></td></tr>
+</table>
+
+<h2>2. Autentikasi (API key)</h2>
+<p>Setiap permintaan wajib membawa API key yang diberikan administrator. Ada dua cara mengirimnya:</p>
+<table>
+  <tr><th style="width:22%">Cara</th><th>Contoh</th><th style="width:32%">Kapan dipakai</th></tr>
+  <tr><td>Header (disarankan)</td><td><code>X-Api-Key: &lt;API_KEY&gt;</code></td><td>Integrasi antar sistem, skrip, aplikasi.</td></tr>
+  <tr><td>Query di link</td><td><code>?apiKey=&lt;API_KEY&gt;</code></td><td>Dibuka cepat lewat browser.</td></tr>
+</table>
+<div class="note"><b>Jaga kerahasiaan key.</b> Key di dalam link tersimpan di riwayat browser dan log server, dan ikut terkirim bila link dibagikan. Jangan taruh key di kode aplikasi web yang berjalan di browser. Jika key bocor, minta administrator menggantinya.</div>
+
+<h2>3. Daftar Kontrak</h2>
+<p><span class="method">GET</span><code>/api/public/contracts</code></p>
+<h3>Parameter (semua opsional)</h3>
+<table>
+  <tr><th style="width:18%">Parameter</th><th style="width:16%">Default</th><th>Keterangan</th></tr>
+  <tr><td><code>page</code></td><td>1</td><td>Nomor halaman.</td></tr>
+  <tr><td><code>pageSize</code></td><td>50</td><td>Jumlah data per halaman, maksimal 100.</td></tr>
+  <tr><td><code>all</code></td><td>false</td><td><code>true</code> = ambil semua kontrak sekaligus tanpa paging (<code>page</code> dan <code>pageSize</code> diabaikan).</td></tr>
+  <tr><td><code>status</code></td><td>-</td><td>Saring berdasarkan status kontrak, penulisan harus persis seperti pada data (mis. <code>Active</code>, <code>Completed</code>).</td></tr>
+  <tr><td><code>tipe</code></td><td>-</td><td>Saring berdasarkan tipe kontrak (mis. <code>Lumpsum</code>, <code>Unit Price</code>, <code>TSA/LTSA</code>).</td></tr>
+  <tr><td><code>q</code></td><td>-</td><td>Cari kata di judul, nomor dokumen, nomor PO/PR, atau nama vendor.</td></tr>
+</table>
+<h3>Contoh</h3>
+<pre># 50 kontrak terbaru (halaman 1)
+GET https://api.maestrokilang.com/api/public/contracts?apiKey=&lt;API_KEY&gt;
+
+# Semua kontrak
+GET https://api.maestrokilang.com/api/public/contracts?apiKey=&lt;API_KEY&gt;&amp;all=true
+
+# Halaman 2, 100 data per halaman, hanya yang Active
+GET https://api.maestrokilang.com/api/public/contracts?apiKey=&lt;API_KEY&gt;&amp;page=2&amp;pageSize=100&amp;status=Active
+
+# Memakai header
+curl -H "X-Api-Key: &lt;API_KEY&gt;" "https://api.maestrokilang.com/api/public/contracts?pageSize=10"</pre>
+<h3>Contoh respons</h3>
+<pre>{
+  "page": 1,
+  "pageSize": 50,
+  "total": 120,
+  "items": [
+    {
+      "id": "b3f1c2e4-...",
+      "judul": "Pekerjaan Overhaul Unit X",
+      "noDokumen": "123/ABC/2025",
+      "noPoPr": "4500012345",
+      "tipe": "Lumpsum",
+      "status": "Active",
+      "vendor": "PT Contoh Vendor",
+      "tanggalMulai": "2025-01-10T00:00:00",
+      "tanggalSelesai": "2025-12-31T00:00:00",
+      "nilaiKontrak": 1500000000,
+      "progressPlan": 62.5,
+      "progressActual": 58.0,
+      "hasAmendment": true
+    }
+  ]
+}</pre>
+<h3>Arti field</h3>
+<table>
+  <tr><th style="width:24%">Field</th><th>Keterangan</th></tr>
+  <tr><td><code>total</code></td><td>Jumlah seluruh kontrak yang cocok dengan filter (bukan hanya halaman ini).</td></tr>
+  <tr><td><code>id</code></td><td>ID kontrak; dipakai untuk mengambil detail.</td></tr>
+  <tr><td><code>judul</code>, <code>noDokumen</code>, <code>noPoPr</code></td><td>Judul kontrak, nomor dokumen kontrak, nomor PO/PR.</td></tr>
+  <tr><td><code>tipe</code>, <code>status</code>, <code>vendor</code></td><td>Tipe kontrak, status kontrak, nama vendor.</td></tr>
+  <tr><td><code>tanggalMulai</code>, <code>tanggalSelesai</code></td><td>Sudah mengikuti amandemen terbaru (jika ada).</td></tr>
+  <tr><td><code>nilaiKontrak</code></td><td>Nilai kontrak terkini (nilai amandemen bila ada, selain itu nilai awal).</td></tr>
+  <tr><td><code>progressPlan</code>, <code>progressActual</code></td><td>Progress rencana dan aktual dalam persen.</td></tr>
+  <tr><td><code>hasAmendment</code></td><td><code>true</code> bila kontrak memiliki amandemen.</td></tr>
+</table>
+
+<h2>4. Detail Kontrak</h2>
+<p><span class="method">GET</span><code>/api/public/contracts/{id}</code></p>
+<p>Ganti <code>{id}</code> dengan nilai <code>id</code> dari daftar kontrak.</p>
+<pre>GET https://api.maestrokilang.com/api/public/contracts/b3f1c2e4-...?apiKey=&lt;API_KEY&gt;</pre>
+<h3>Isi respons</h3>
+<table>
+  <tr><th style="width:30%">Bagian</th><th>Keterangan</th></tr>
+  <tr><td>Data kontrak</td><td><code>id, judul, noDokumen, noPoPr, noIrkap, tipe, status, vendor, direksiPekerjaan, programKerja, planner</code></td></tr>
+  <tr><td>Tanggal &amp; durasi</td><td><code>tanggalKom, tanggalMulai, tanggalSelesai, tanggalMulaiEfektif, tanggalSelesaiEfektif, durasiHari</code>. Tanggal "efektif" = sesudah amandemen terbaru.</td></tr>
+  <tr><td>Nilai</td><td><code>nilaiAwal</code> dan <code>nilaiKontrak</code> (nilai terkini).</td></tr>
+  <tr><td>Progress &amp; catatan</td><td><code>progressPlan, progressActual, aktivitasSaatIni, kendala</code></td></tr>
+  <tr><td><code>amandemen[]</code></td><td>Urut dari yang pertama: <code>nomorUrut, noAmandemen, tanggalAmandemen, jenis, nilaiKontrakBaru, durasiHari, tanggalMulaiBaru, tanggalSelesaiBaru, alasan</code></td></tr>
+  <tr><td><code>progress.lumpsum[]</code></td><td><code>milestone, persen, tanggalUpdate</code></td></tr>
+  <tr><td><code>progress.unitPrice[]</code></td><td><code>namaItem, satuan, qtyRencana, qtyAktual, tanggalUpdate</code></td></tr>
+  <tr><td><code>progress.monitoringLtsa[]</code></td><td><code>tanggalKunjungan, jenisLayanan, durasiJam, slaTerpenuhi, keterangan</code></td></tr>
+  <tr><td><code>updatedAt</code></td><td>Waktu data kontrak terakhir diperbarui.</td></tr>
+</table>
+
+<h2>5. Kode Respons</h2>
+<table>
+  <tr><th style="width:12%">Kode</th><th style="width:34%">Arti</th><th>Penanganan</th></tr>
+  <tr><td>200</td><td>Berhasil.</td><td>-</td></tr>
+  <tr><td>401</td><td>API key tidak valid.</td><td>Periksa key (tidak boleh ada spasi di awal/akhir).</td></tr>
+  <tr><td>404</td><td>"API publik tidak aktif" atau "Kontrak tidak ditemukan".</td><td>API belum diaktifkan administrator, atau <code>id</code> kontrak salah.</td></tr>
+  <tr><td>5xx</td><td>Gangguan di server.</td><td>Coba lagi beberapa saat kemudian; hubungi administrator bila berulang.</td></tr>
+</table>
+
+<h2>6. Contoh Pemakaian Kode</h2>
+<h3>JavaScript (Node.js / server)</h3>
+<pre>const res = await fetch(
+  "https://api.maestrokilang.com/api/public/contracts?all=true",
+  { headers: { "X-Api-Key": process.env.MAESTRO_API_KEY } }
+);
+const { total, items } = await res.json();
+console.log(total, items[0]);</pre>
+<h3>Python</h3>
+<pre>import os, requests
+r = requests.get(
+    "https://api.maestrokilang.com/api/public/contracts",
+    headers={"X-Api-Key": os.environ["MAESTRO_API_KEY"]},
+    params={"all": "true"},
+    timeout=30,
+)
+r.raise_for_status()
+data = r.json()
+print(data["total"])</pre>
+<h3>Excel / Power Query</h3>
+<p>Data &rarr; Get Data &rarr; From Web &rarr; Advanced, isi URL <code>https://api.maestrokilang.com/api/public/contracts?all=true</code>, tambahkan header <code>X-Api-Key</code> berisi key. Pilih <code>items</code> lalu <i>Expand</i> kolomnya.</p>
+
+<h2>7. Yang Tidak Disediakan</h2>
+<div class="ok">API ini sengaja <b>tidak</b> menampilkan data tagihan, file/dokumen, bukti progress (evidence), dan harga satuan. API ini juga hanya untuk membaca; tidak ada fungsi menambah, mengubah, atau menghapus data.</div>
+
+<h2>8. Catatan</h2>
+<ul>
+  <li>Data selalu sesuai kondisi terbaru di sistem MAESTRO saat permintaan dibuat.</li>
+  <li>Untuk daftar besar, gunakan <code>page</code> dan <code>pageSize</code> daripada <code>all=true</code> agar respons lebih ringan.</li>
+  <li>Untuk meminta atau mengganti API key, hubungi administrator MAESTRO.</li>
+</ul>
+
+</body>
+</html>
