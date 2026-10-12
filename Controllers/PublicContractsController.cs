@@ -31,13 +31,15 @@ public class PublicContractsController : ControllerBase
     }
 
     // GET /api/public/contracts?page=1&pageSize=50&status=Active&tipe=Lumpsum&q=kata
+    // Tambahkan all=true untuk mengambil semua kontrak sekaligus tanpa paging.
     [HttpGet]
     public async Task<IActionResult> GetList(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         [FromQuery] string? status = null,
         [FromQuery] string? tipe = null,
-        [FromQuery] string? q = null)
+        [FromQuery] string? q = null,
+        [FromQuery] bool all = false)
     {
         var denied = CheckApiKey();
         if (denied != null) return denied;
@@ -62,10 +64,9 @@ public class PublicContractsController : ControllerBase
         }
 
         var total = await query.CountAsync();
-        var items = await query
-            .OrderByDescending(k => k.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+        var ordered = query.OrderByDescending(k => k.CreatedAt);
+        var paged = all ? ordered : ordered.Skip((page - 1) * pageSize).Take(pageSize);
+        var items = await paged
             .Select(k => new
             {
                 id = k.IdKontrak,
@@ -84,7 +85,9 @@ public class PublicContractsController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(new { page, pageSize, total, items });
+        return Ok(all
+            ? new { page = 1, pageSize = total, total, items }
+            : new { page, pageSize, total, items });
     }
 
     // GET /api/public/contracts/{id}
