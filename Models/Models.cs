@@ -460,6 +460,33 @@ public class LogAkses
 }
 
 // Kontrak favorit per user, supaya kontrak yang sering dibuka cepat ditemukan.
+/// <summary>Satu percakapan chatbot milik seorang user.</summary>
+public class AiChatSession
+{
+    [Key]
+    public string IdSession { get; set; } = Guid.NewGuid().ToString();
+    [Required]
+    public string IdUser { get; set; } = string.Empty;
+    [Required]
+    public string Judul { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>Pesan dalam percakapan chatbot. Content: teks pertanyaan, atau JSON jawaban ({"blocks":[...]}).</summary>
+public class AiChatMessage
+{
+    [Key]
+    public string IdMessage { get; set; } = Guid.NewGuid().ToString();
+    [Required]
+    public string IdSession { get; set; } = string.Empty;
+    [Required]
+    public string Role { get; set; } = "user"; // user | assistant
+    [Required]
+    public string Content { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 public class KontrakFavorit
 {
     [Key]

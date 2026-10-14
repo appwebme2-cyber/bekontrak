@@ -765,4 +765,6 @@ public class ChatRequestDto
     public string Question { get; set; } = string.Empty;
     public List<ChatHistoryDto>? History { get; set; }
     public ChatContextDto? Context { get; set; }
+    /// <summary>Percakapan tersimpan yang dilanjutkan; kosong = percakapan baru.</summary>
+    public string? SessionId { get; set; }
 }

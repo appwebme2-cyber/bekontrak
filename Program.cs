@@ -313,6 +313,33 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"[Startup] Table creation warning (ai_chat_usage): {ex.Message}");
     }
 
+    try
+    {
+        // Riwayat percakapan chatbot per user
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ai_chat_session (
+                id_session TEXT PRIMARY KEY,
+                id_user TEXT NOT NULL,
+                judul TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS ix_ai_chat_session_user ON ai_chat_session(id_user, updated_at DESC);
+            CREATE TABLE IF NOT EXISTS ai_chat_message (
+                id_message TEXT PRIMARY KEY,
+                id_session TEXT NOT NULL REFERENCES ai_chat_session(id_session) ON DELETE CASCADE,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS ix_ai_chat_message_session ON ai_chat_message(id_session, created_at);
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Table creation warning (ai_chat_session/message): {ex.Message}");
+    }
+
     // Backfill: kontrak yang punya amandemen di tabel amandemen_kontrak tapi kolom tanggal
     // amandemen-nya di tabel kontrak masih kosong/usang (sebelum AmandemenController
     // menyinkronkannya). Amandemen terakhir (nomor_urut tertinggi yang mengisi tanggal) menang;

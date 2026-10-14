@@ -27,6 +27,8 @@ public class AppDbContext : DbContext
     public DbSet<TokenBlacklist> TokenBlacklists { get; set; }
     public DbSet<LogAkses> LogAkses { get; set; }
     public DbSet<KontrakFavorit> KontrakFavorits { get; set; }
+    public DbSet<AiChatSession> AiChatSessions { get; set; }
+    public DbSet<AiChatMessage> AiChatMessages { get; set; }
     public DbSet<RabItem> RabItems { get; set; }
     public DbSet<MaterialRequirementDraft> MaterialRequirementDrafts { get; set; }
     public DbSet<MaterialRequirementLine> MaterialRequirementLines { get; set; }
@@ -60,6 +62,22 @@ public class AppDbContext : DbContext
             e.Property(p => p.IdFavorit).HasColumnName("id_favorit");
             e.Property(p => p.IdUser).HasColumnName("id_user");
             e.Property(p => p.IdKontrak).HasColumnName("id_kontrak");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+        });
+        modelBuilder.Entity<AiChatSession>().ToTable("ai_chat_session");
+        modelBuilder.Entity<AiChatSession>(e => {
+            e.Property(p => p.IdSession).HasColumnName("id_session");
+            e.Property(p => p.IdUser).HasColumnName("id_user");
+            e.Property(p => p.Judul).HasColumnName("judul");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+            e.Property(p => p.UpdatedAt).HasColumnName("updated_at");
+        });
+        modelBuilder.Entity<AiChatMessage>().ToTable("ai_chat_message");
+        modelBuilder.Entity<AiChatMessage>(e => {
+            e.Property(p => p.IdMessage).HasColumnName("id_message");
+            e.Property(p => p.IdSession).HasColumnName("id_session");
+            e.Property(p => p.Role).HasColumnName("role");
+            e.Property(p => p.Content).HasColumnName("content");
             e.Property(p => p.CreatedAt).HasColumnName("created_at");
         });
         modelBuilder.Entity<RabItem>().ToTable("rab_item");

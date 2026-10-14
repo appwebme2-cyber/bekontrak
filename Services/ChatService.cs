@@ -296,8 +296,15 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
 
     // ===================================================================== LOOP
 
-    public async Task<ChatAnswer> AskAsync(string question, List<ChatHistoryItem> history, ChatPageContext? context, CancellationToken ct)
+    /// <param name="onStatus">Dipanggil dengan keterangan langkah yang sedang berjalan (untuk progress di layar).</param>
+    public async Task<ChatAnswer> AskAsync(string question, List<ChatHistoryItem> history, ChatPageContext? context,
+        Func<string, Task>? onStatus, CancellationToken ct)
     {
+        async Task Status(string text)
+        {
+            if (onStatus != null) await onStatus(text);
+        }
+
         if (string.IsNullOrWhiteSpace(_apiKey))
             throw new InvalidOperationException("Anthropic API key belum dikonfigurasi. Hubungi admin untuk mengatur environment variable Anthropic__ApiKey.");
 
@@ -312,6 +319,8 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
             new() { Text = SystemPrompt, CacheControl = new CacheControlEphemeral() },
             new() { Text = $"Tanggal hari ini: {Today:yyyy-MM-dd} (WIB)." },
         };
+
+        await Status("Memahami pertanyaan...");
 
         for (var round = 0; round <= MaxToolRounds; round++)
         {
@@ -361,6 +370,7 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
                     var isError = false;
                     try
                     {
+                        await Status(DescribeTool(toolUse.Name, toolUse.Input));
                         result = await RunToolAsync(toolUse.Name, toolUse.Input, ct);
                     }
                     catch (Exception ex)
@@ -380,6 +390,7 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
 
             messages.Add(new MessageParam { Role = Role.Assistant, Content = assistantContent });
             messages.Add(new MessageParam { Role = Role.User, Content = toolResults });
+            await Status("Menyusun jawaban...");
         }
 
         return TextAnswer("Maaf, pertanyaan ini butuh terlalu banyak langkah pengambilan data. Coba pecah menjadi beberapa pertanyaan yang lebih spesifik.");
@@ -430,6 +441,25 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
         var raw = JsonSerializer.Serialize(new { blocks = new[] { new { type = "text", text } } });
         using var doc = JsonDocument.Parse(raw);
         return new ChatAnswer(doc.RootElement.Clone(), raw);
+    }
+
+    /// <summary>Keterangan singkat langkah tool untuk ditampilkan ke user selama menunggu.</summary>
+    private static string DescribeTool(string name, IReadOnlyDictionary<string, JsonElement> input)
+    {
+        var by = Str(input, "kelompokkan_berdasarkan")?.Replace('_', ' ');
+        var keyword = Str(input, "kata_kunci");
+        var suffix = keyword != null ? $" \"{(keyword.Length > 40 ? keyword[..40] : keyword)}\"" : string.Empty;
+        return name switch
+        {
+            "cari_kontrak" => $"Mencari kontrak{suffix}...",
+            "ringkasan_kontrak" => $"Menghitung statistik kontrak per {by ?? "kelompok"}...",
+            "detail_kontrak" => $"Membuka detail kontrak{suffix}...",
+            "cari_tagihan" => $"Mencari tagihan{suffix}...",
+            "ringkasan_tagihan" => $"Menghitung statistik tagihan per {by ?? "kelompok"}...",
+            "cari_amandemen" => $"Mencari amandemen{suffix}...",
+            "query_data" => "Menjalankan query data...",
+            _ => "Mengambil data...",
+        };
     }
 
     // ===================================================================== TOOL IMPLEMENTATIONS
