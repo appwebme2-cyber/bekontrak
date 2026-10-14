@@ -16,6 +16,7 @@ public class ReadOnlyRoleFilter : IAsyncActionFilter
     private static readonly HashSet<string> ExemptControllers = new(StringComparer.OrdinalIgnoreCase)
     {
         "Auth", "Favorites", "Profile",
+        "Chat", // chatbot hanya membaca data; POST dipakai untuk mengirim pertanyaan
     };
 
     private readonly RolePermissionService _permissions;

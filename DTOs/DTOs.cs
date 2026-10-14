@@ -744,3 +744,16 @@ public class SlaTagihanDto
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
+
+// ===================== CHATBOT =====================
+public class ChatHistoryDto
+{
+    public string Role { get; set; } = "user"; // user | assistant
+    public string Content { get; set; } = string.Empty;
+}
+
+public class ChatRequestDto
+{
+    public string Question { get; set; } = string.Empty;
+    public List<ChatHistoryDto>? History { get; set; }
+}

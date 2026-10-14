@@ -70,6 +70,7 @@ builder.Services.AddSingleton<R2StorageService>();
 builder.Services.AddSingleton<FileTokenService>();
 builder.Services.AddSingleton<AiExtractionService>();
 builder.Services.AddSingleton<RolePermissionService>();
+builder.Services.AddScoped<ChatService>();
 builder.Services.AddControllers(options => options.Filters.Add<ReadOnlyRoleFilter>());
 builder.Services.AddDirectoryBrowser();
 
@@ -292,6 +293,23 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"[Startup] Table creation warning (kontrak_favorit): {ex.Message}");
+    }
+
+    try
+    {
+        // Jumlah pertanyaan chatbot per user per hari (untuk batas harian)
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ai_chat_usage (
+                id_user TEXT NOT NULL,
+                tanggal DATE NOT NULL,
+                jumlah INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (id_user, tanggal)
+            );
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Table creation warning (ai_chat_usage): {ex.Message}");
     }
 
     // Backfill: kontrak yang punya amandemen di tabel amandemen_kontrak tapi kolom tanggal
