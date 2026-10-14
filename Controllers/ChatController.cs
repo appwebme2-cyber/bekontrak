@@ -68,7 +68,11 @@ public class ChatController : ControllerBase
                 .Select(h => new ChatHistoryItem(h.Role, h.Content))
                 .ToList();
 
-            var answer = await _chat.AskAsync(question, history, ct);
+            var context = dto.Context == null
+                ? null
+                : new ChatPageContext(dto.Context.Path, dto.Context.PageTitle, dto.Context.KontrakId, dto.Context.TagihanId);
+
+            var answer = await _chat.AskAsync(question, history, context, ct);
 
             // Hanya pertanyaan yang berhasil dijawab yang mengurangi kuota
             await _context.Database.ExecuteSqlInterpolatedAsync($@"

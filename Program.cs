@@ -70,6 +70,7 @@ builder.Services.AddSingleton<R2StorageService>();
 builder.Services.AddSingleton<FileTokenService>();
 builder.Services.AddSingleton<AiExtractionService>();
 builder.Services.AddSingleton<RolePermissionService>();
+builder.Services.AddSingleton<ChatReadOnlyDb>();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddControllers(options => options.Filters.Add<ReadOnlyRoleFilter>());
 builder.Services.AddDirectoryBrowser();
@@ -348,6 +349,9 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"[Startup] Backfill warning (tanggal amandemen kontrak): {ex.Message}");
     }
+
+    // Role database baca-saja + view tanpa kolom sensitif untuk tool query_data chatbot
+    await app.Services.GetRequiredService<ChatReadOnlyDb>().InitializeAsync();
 }
 
 // ==================== MIDDLEWARE ====================

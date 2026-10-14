@@ -752,8 +752,17 @@ public class ChatHistoryDto
     public string Content { get; set; } = string.Empty;
 }
 
+public class ChatContextDto
+{
+    public string? Path { get; set; }
+    public string? PageTitle { get; set; }
+    public string? KontrakId { get; set; }
+    public string? TagihanId { get; set; }
+}
+
 public class ChatRequestDto
 {
     public string Question { get; set; } = string.Empty;
     public List<ChatHistoryDto>? History { get; set; }
+    public ChatContextDto? Context { get; set; }
 }

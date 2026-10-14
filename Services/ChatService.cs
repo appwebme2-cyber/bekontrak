@@ -9,6 +9,9 @@ namespace RefineryContractAPI.Services;
 
 public record ChatHistoryItem(string Role, string Content);
 
+/// <summary>Halaman yang sedang dibuka user saat bertanya (mis. detail kontrak tertentu).</summary>
+public record ChatPageContext(string? Path, string? PageTitle, string? KontrakId, string? TagihanId);
+
 /// <summary>Jawaban chatbot: JSON {"blocks":[...]} yang dirender frontend sebagai teks/tabel/chart/link.</summary>
 public record ChatAnswer(JsonElement Answer, string Raw);
 
@@ -25,15 +28,17 @@ public class ChatService
     private const int MaxToolResultChars = 120_000;
 
     private readonly AppDbContext _db;
+    private readonly ChatReadOnlyDb _readOnlyDb;
     private readonly string? _apiKey;
     private readonly string _model;
 
     private List<KontrakRow>? _kontrakCache;
     private List<TagihanRow>? _tagihanCache;
 
-    public ChatService(AppDbContext db, IConfiguration config)
+    public ChatService(AppDbContext db, ChatReadOnlyDb readOnlyDb, IConfiguration config)
     {
         _db = db;
+        _readOnlyDb = readOnlyDb;
         _apiKey = config["Anthropic:ApiKey"];
         _model = string.IsNullOrWhiteSpace(config["Anthropic:ChatModel"]) ? "claude-opus-5-5" : config["Anthropic:ChatModel"]!;
     }
@@ -45,7 +50,10 @@ public class ChatService
 ## Aturan data
 - Untuk SETIAP pertanyaan tentang data (kontrak, vendor, nilai, tanggal, progress, amandemen, tagihan), WAJIB ambil data lewat tool. Jangan pernah mengarang angka, nama, atau tanggal.
 - Kalau tool tidak mengembalikan data yang cocok, katakan terus terang bahwa datanya tidak ditemukan, dan sarankan kata kunci lain bila relevan.
-- Data yang belum bisa Anda akses (di luar tool): laporan harian, PADI/user purchase, approval dokumen, kebutuhan material, data pengguna. Katakan bahwa fitur itu belum tersedia di chatbot dan arahkan ke menunya.
+- Utamakan tool khusus (cari_kontrak, ringkasan_kontrak, detail_kontrak, cari_tagihan, ringkasan_tagihan, cari_amandemen) bila cukup. Untuk data lain (laporan harian, PADI/user purchase, approval dokumen, kebutuhan material & RAB, SLA, master direksi/program kerja/planner) atau analisis yang tidak bisa dijawab tool khusus, pakai query_data (SQL SELECT PostgreSQL). Kalau query gagal, baca pesan errornya lalu perbaiki query.
+- Kalau query_data tidak tersedia dan tool khusus tidak mencakup pertanyaannya, katakan bahwa data itu belum bisa diakses chatbot dan arahkan ke menunya.
+- Data akun pengguna (nama, email, password, log akses) TIDAK boleh dan tidak bisa diakses.
+- Kalau ada keterangan [Konteks halaman], pertanyaan seperti ""kontrak ini"" atau ""tagihan ini"" merujuk ke data di konteks tersebut.
 - Anda hanya bisa MEMBACA data. Kalau user minta menambah/mengubah/menghapus data, jelaskan bahwa chatbot tidak bisa melakukannya dan arahkan ke menu yang tepat.
 - Sebutkan dasar data secara singkat (mis. ""berdasarkan 42 kontrak berstatus Aktif"").
 - Pertanyaan yang ambigu: pilih tafsiran paling wajar, sebutkan asumsi Anda dalam satu kalimat.
@@ -243,15 +251,60 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
         },
     };
 
+    private List<ToolUnion> BuildTools()
+    {
+        var tools = new List<ToolUnion>(Tools);
+        if (_readOnlyDb.Enabled)
+        {
+            tools.Add(new Tool
+            {
+                Name = "query_data",
+                Description =
+                    "Jalankan SATU query SQL SELECT (PostgreSQL, boleh WITH/JOIN/GROUP BY) yang hanya bisa membaca view berikut:\n" +
+                    _readOnlyDb.SchemaDescription +
+                    "\n\nCatatan: status kontrak bervariasi (Aktif/Active, Selesai/Completed) - pakai ILIKE atau IN. Kolom *_baru di kontrak berisi nilai/tanggal hasil amandemen terakhir; pakai COALESCE(kolom_baru, kolom_awal) untuk nilai terkini. Hasil maksimal " + ChatReadOnlyDb.MaxRows +
+                    " baris - utamakan agregasi (COUNT/SUM/AVG + GROUP BY) dan LIMIT. Tanpa titik koma dan komentar.",
+                InputSchema = new()
+                {
+                    Properties = new Dictionary<string, JsonElement>
+                    {
+                        ["sql"] = P(new { type = "string", description = "Query SELECT" }),
+                    },
+                    Required = ["sql"],
+                },
+            });
+        }
+        return tools;
+    }
+
+    private static string? DescribeContext(ChatPageContext? ctx)
+    {
+        if (ctx == null || string.IsNullOrWhiteSpace(ctx.Path)) return null;
+        // Nilai dari frontend: buang baris baru/kurung siku dan batasi panjang supaya tidak bisa menyamar sebagai instruksi
+        static string Clean(string? value, int max)
+        {
+            var c = (value ?? string.Empty).Replace('\n', ' ').Replace('\r', ' ').Replace('[', '(').Replace(']', ')').Trim();
+            return c.Length > max ? c[..max] : c;
+        }
+
+        var parts = new List<string> { $"user sedang membuka halaman {Clean(ctx.Path, 120)}" };
+        if (!string.IsNullOrWhiteSpace(ctx.PageTitle)) parts.Add($"judul halaman: {Clean(ctx.PageTitle, 120)}");
+        if (!string.IsNullOrWhiteSpace(ctx.KontrakId)) parts.Add($"id_kontrak yang dibuka: {Clean(ctx.KontrakId, 64)}");
+        if (!string.IsNullOrWhiteSpace(ctx.TagihanId)) parts.Add($"id_tagihan yang dibuka: {Clean(ctx.TagihanId, 64)}");
+        return $"[Konteks halaman: {string.Join("; ", parts)}]";
+    }
+
     // ===================================================================== LOOP
 
-    public async Task<ChatAnswer> AskAsync(string question, List<ChatHistoryItem> history, CancellationToken ct)
+    public async Task<ChatAnswer> AskAsync(string question, List<ChatHistoryItem> history, ChatPageContext? context, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(_apiKey))
             throw new InvalidOperationException("Anthropic API key belum dikonfigurasi. Hubungi admin untuk mengatur environment variable Anthropic__ApiKey.");
 
         var client = new AnthropicClient { ApiKey = _apiKey };
-        var messages = BuildMessages(history, question);
+        var contextNote = DescribeContext(context);
+        var messages = BuildMessages(history, contextNote == null ? question : $"{contextNote}\n\n{question}");
+        var tools = BuildTools();
 
         // Blok pertama (instruksi tetap) di-cache; tanggal hari ini di blok terpisah supaya cache tidak pecah.
         var system = new List<TextBlockParam>
@@ -267,7 +320,7 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
                 Model = _model,
                 MaxTokens = 16000,
                 System = system,
-                Tools = Tools,
+                Tools = tools,
                 OutputConfig = new OutputConfig
                 {
                     Effort = Effort.Medium,
@@ -395,6 +448,7 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
             "cari_tagihan" => await CariTagihanAsync(input, ct),
             "ringkasan_tagihan" => await RingkasanTagihanAsync(input, ct),
             "cari_amandemen" => await CariAmandemenAsync(input, ct),
+            "query_data" => await _readOnlyDb.QueryAsync(Str(input, "sql") ?? string.Empty, ct),
             _ => new { error = $"Tool tidak dikenal: {name}" },
         };
 
