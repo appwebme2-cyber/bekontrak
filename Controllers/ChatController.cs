@@ -12,7 +12,7 @@ using RefineryContractAPI.Services;
 namespace RefineryContractAPI.Controllers;
 
 /// <summary>
-/// Chatbot internal MAESTRO. Hanya untuk role internal (bukan External/Vendor) dan dibatasi
+/// Chatbot internal MAESTRO. Hanya untuk role di Chat__AllowedRoles (default admin; tidak pernah External/Vendor) dan dibatasi
 /// jumlah pertanyaan per user per hari (env var Chat__DailyLimit, default 30).
 /// Percakapan disimpan per user (ai_chat_session / ai_chat_message) dan hanya bisa dibaca pemiliknya.
 /// </summary>
@@ -43,7 +43,7 @@ public class ChatController : ControllerBase
     [HttpGet("quota")]
     public async Task<IActionResult> GetQuota()
     {
-        if (!IsInternal()) return Forbidden();
+        if (!IsAllowed()) return Forbidden();
 
         var limit = DailyLimit();
         var used = await GetUsageAsync(UserId(), Today());
@@ -56,7 +56,7 @@ public class ChatController : ControllerBase
     [HttpGet("sessions")]
     public async Task<IActionResult> GetSessions()
     {
-        if (!IsInternal()) return Forbidden();
+        if (!IsAllowed()) return Forbidden();
 
         var userId = UserId();
         var sessions = await _context.AiChatSessions.AsNoTracking()
@@ -72,7 +72,7 @@ public class ChatController : ControllerBase
     [HttpGet("sessions/{id}")]
     public async Task<IActionResult> GetSession(string id)
     {
-        if (!IsInternal()) return Forbidden();
+        if (!IsAllowed()) return Forbidden();
 
         var userId = UserId();
         var session = await _context.AiChatSessions.AsNoTracking()
@@ -92,7 +92,7 @@ public class ChatController : ControllerBase
     [HttpDelete("sessions/{id}")]
     public async Task<IActionResult> DeleteSession(string id)
     {
-        if (!IsInternal()) return Forbidden();
+        if (!IsAllowed()) return Forbidden();
 
         var userId = UserId();
         // Pesan ikut terhapus lewat ON DELETE CASCADE
@@ -146,8 +146,8 @@ public class ChatController : ControllerBase
     /// <summary>Cek hak akses, isi pertanyaan, dan kuota sebelum memanggil AI.</summary>
     private async Task<((int Status, object Body)? Error, string? Question)> ValidateAsync(ChatRequestDto dto)
     {
-        if (!IsInternal())
-            return ((403, new { message = "Chatbot hanya tersedia untuk pengguna internal." }), null);
+        if (!IsAllowed())
+            return ((403, new { message = NotAllowedMessage }), null);
 
         var question = (dto.Question ?? string.Empty).Trim();
         if (question.Length == 0)
@@ -256,15 +256,30 @@ public class ChatController : ControllerBase
 
     private string UserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
 
-    // Internal = semua role selain External (dan Vendor, nama lamanya)
-    private bool IsInternal()
+    /// <summary>
+    /// Role yang boleh memakai chatbot, dari env var Chat__AllowedRoles (dipisah koma).
+    /// Default "admin" (uji coba). Isi "internal" untuk semua role kecuali External/Vendor,
+    /// atau daftar role, mis. "admin,manager,head_office". External/Vendor tidak pernah diizinkan.
+    /// </summary>
+    private bool IsAllowed()
     {
+        if (string.IsNullOrEmpty(UserId())) return false;
+
         var role = (User.FindFirstValue(ClaimTypes.Role) ?? string.Empty).Trim().ToLowerInvariant();
-        return role is not ("external" or "vendor") && !string.IsNullOrEmpty(UserId());
+        if (role is "external" or "vendor") return false;
+
+        var setting = _config["Chat:AllowedRoles"];
+        var allowed = (string.IsNullOrWhiteSpace(setting) ? "admin" : setting)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(r => r.ToLowerInvariant())
+            .ToHashSet();
+
+        return allowed.Contains("internal") || allowed.Contains(role);
     }
 
-    private ObjectResult Forbidden() =>
-        StatusCode(403, new { message = "Chatbot hanya tersedia untuk pengguna internal." });
+    private const string NotAllowedMessage = "Chatbot belum tersedia untuk akun Anda.";
+
+    private ObjectResult Forbidden() => StatusCode(403, new { message = NotAllowedMessage });
 
     private int DailyLimit() =>
         int.TryParse(_config["Chat:DailyLimit"], out var n) && n > 0 ? n : DefaultDailyLimit;
