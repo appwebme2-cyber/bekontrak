@@ -69,6 +69,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<R2StorageService>();
 builder.Services.AddSingleton<FileTokenService>();
 builder.Services.AddSingleton<AiExtractionService>();
+builder.Services.AddSingleton<PinGuard>();
 builder.Services.AddSingleton<RolePermissionService>();
 builder.Services.AddSingleton<ChatReadOnlyDb>();
 builder.Services.AddScoped<ChatService>();

@@ -12,7 +12,8 @@ using RefineryContractAPI.Services;
 namespace RefineryContractAPI.Controllers;
 
 /// <summary>
-/// Chatbot internal MAESTRO. Hanya untuk role di Chat__AllowedRoles (default admin; tidak pernah External/Vendor) dan dibatasi
+/// Chatbot internal MAESTRO. Hanya untuk role di Chat__AllowedRoles (default semua role internal; tidak pernah
+/// External/Vendor), wajib PIN (header X-Chat-Pin, sama dengan env var PIN fitur AI), dan dibatasi
 /// jumlah pertanyaan per user per hari (env var Chat__DailyLimit, default 30).
 /// Percakapan disimpan per user (ai_chat_session / ai_chat_message) dan hanya bisa dibaca pemiliknya.
 /// </summary>
@@ -31,12 +32,24 @@ public class ChatController : ControllerBase
     private readonly AppDbContext _context;
     private readonly ChatService _chat;
     private readonly IConfiguration _config;
+    private readonly PinGuard _pinGuard;
 
-    public ChatController(AppDbContext context, ChatService chat, IConfiguration config)
+    public ChatController(AppDbContext context, ChatService chat, IConfiguration config, PinGuard pinGuard)
     {
         _context = context;
         _chat = chat;
         _config = config;
+        _pinGuard = pinGuard;
+    }
+
+    // POST /api/Chat/verify-pin  (membuka kunci chatbot di frontend)
+    [HttpPost("verify-pin")]
+    public IActionResult VerifyPin([FromBody] ChatPinDto dto)
+    {
+        if (!IsAllowed()) return Forbidden();
+
+        var error = _pinGuard.Check(UserId(), dto.Pin);
+        return error == null ? Ok(new { message = "PIN benar." }) : PinRejected(error.Value);
     }
 
     // GET /api/Chat/quota
@@ -57,6 +70,7 @@ public class ChatController : ControllerBase
     public async Task<IActionResult> GetSessions()
     {
         if (!IsAllowed()) return Forbidden();
+        if (CheckPin() is { } pinError) return PinRejected(pinError);
 
         var userId = UserId();
         var sessions = await _context.AiChatSessions.AsNoTracking()
@@ -73,6 +87,7 @@ public class ChatController : ControllerBase
     public async Task<IActionResult> GetSession(string id)
     {
         if (!IsAllowed()) return Forbidden();
+        if (CheckPin() is { } pinError) return PinRejected(pinError);
 
         var userId = UserId();
         var session = await _context.AiChatSessions.AsNoTracking()
@@ -93,6 +108,7 @@ public class ChatController : ControllerBase
     public async Task<IActionResult> DeleteSession(string id)
     {
         if (!IsAllowed()) return Forbidden();
+        if (CheckPin() is { } pinError) return PinRejected(pinError);
 
         var userId = UserId();
         // Pesan ikut terhapus lewat ON DELETE CASCADE
@@ -148,6 +164,9 @@ public class ChatController : ControllerBase
     {
         if (!IsAllowed())
             return ((403, new { message = NotAllowedMessage }), null);
+
+        if (CheckPin() is { } pinError)
+            return ((pinError.Status, PinRejectedBody(pinError)), null);
 
         var question = (dto.Question ?? string.Empty).Trim();
         if (question.Length == 0)
@@ -258,8 +277,8 @@ public class ChatController : ControllerBase
 
     /// <summary>
     /// Role yang boleh memakai chatbot, dari env var Chat__AllowedRoles (dipisah koma).
-    /// Default "admin" (uji coba). Isi "internal" untuk semua role kecuali External/Vendor,
-    /// atau daftar role, mis. "admin,manager,head_office". External/Vendor tidak pernah diizinkan.
+    /// Default "internal" (semua role kecuali External/Vendor), atau daftar role,
+    /// mis. "admin,manager,head_office". External/Vendor tidak pernah diizinkan.
     /// </summary>
     private bool IsAllowed()
     {
@@ -269,7 +288,7 @@ public class ChatController : ControllerBase
         if (role is "external" or "vendor") return false;
 
         var setting = _config["Chat:AllowedRoles"];
-        var allowed = (string.IsNullOrWhiteSpace(setting) ? "admin" : setting)
+        var allowed = (string.IsNullOrWhiteSpace(setting) ? "internal" : setting)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(r => r.ToLowerInvariant())
             .ToHashSet();
@@ -280,6 +299,17 @@ public class ChatController : ControllerBase
     private const string NotAllowedMessage = "Chatbot belum tersedia untuk akun Anda.";
 
     private ObjectResult Forbidden() => StatusCode(403, new { message = NotAllowedMessage });
+
+    // PIN dikirim frontend lewat header di setiap permintaan chatbot (kecuali cek kuota)
+    private (int Status, string Message)? CheckPin() =>
+        _pinGuard.Check(UserId(), Request.Headers["X-Chat-Pin"].ToString());
+
+    // pinInvalid memberi tahu frontend untuk meminta PIN lagi (beda dengan 403 karena role)
+    private static object PinRejectedBody((int Status, string Message) error) =>
+        new { message = error.Message, pinInvalid = error.Status is 403 or 429 };
+
+    private ObjectResult PinRejected((int Status, string Message) error) =>
+        StatusCode(error.Status, PinRejectedBody(error));
 
     private int DailyLimit() =>
         int.TryParse(_config["Chat:DailyLimit"], out var n) && n > 0 ? n : DefaultDailyLimit;

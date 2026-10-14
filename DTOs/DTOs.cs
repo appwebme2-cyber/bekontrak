@@ -752,6 +752,11 @@ public class ChatHistoryDto
     public string Content { get; set; } = string.Empty;
 }
 
+public class ChatPinDto
+{
+    public string? Pin { get; set; }
+}
+
 public class ChatContextDto
 {
     public string? Path { get; set; }
