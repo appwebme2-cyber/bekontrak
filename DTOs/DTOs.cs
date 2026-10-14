@@ -773,3 +773,11 @@ public class ChatRequestDto
     /// <summary>Percakapan tersimpan yang dilanjutkan; kosong = percakapan baru.</summary>
     public string? SessionId { get; set; }
 }
+
+// ===================== PEMAKAIAN AI =====================
+public class AiTopupDto
+{
+    public decimal JumlahUsd { get; set; }
+    public DateTime? Tanggal { get; set; }
+    public string? Catatan { get; set; }
+}

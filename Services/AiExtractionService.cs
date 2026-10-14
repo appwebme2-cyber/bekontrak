@@ -13,9 +13,11 @@ public class AiExtractionService
     private readonly string? _apiKey;
     private readonly string _model;
     private readonly R2StorageService _r2;
+    private readonly AiUsageTracker _usage;
 
-    public AiExtractionService(IConfiguration config, R2StorageService r2)
+    public AiExtractionService(IConfiguration config, R2StorageService r2, AiUsageTracker usage)
     {
+        _usage = usage;
         _apiKey = config["Anthropic:ApiKey"];
         _model = string.IsNullOrWhiteSpace(config["Anthropic:Model"]) ? "claude-sonnet-5-5" : config["Anthropic:Model"]!;
         _r2 = r2;
@@ -147,6 +149,11 @@ Jawab HANYA dalam format JSON sesuai schema yang diberikan, dalam Bahasa Indones
             },
             Messages = [new() { Role = Role.User, Content = contentBlocks }]
         });
+
+        var requestId = Guid.NewGuid().ToString();
+        await _usage.RecordAsync(requestId, "ekstraksi", _model,
+            response.Usage.InputTokens, response.Usage.OutputTokens,
+            response.Usage.CacheReadInputTokens, response.Usage.CacheCreationInputTokens);
 
         if (response.StopReason == "max_tokens")
             throw new InvalidOperationException("Hasil AI terpotong karena dokumen terlalu panjang/kompleks. Coba pecah dokumen menjadi bagian yang lebih kecil, atau upload hanya halaman yang relevan.");

@@ -70,6 +70,8 @@ builder.Services.AddSingleton<R2StorageService>();
 builder.Services.AddSingleton<FileTokenService>();
 builder.Services.AddSingleton<AiExtractionService>();
 builder.Services.AddSingleton<PinGuard>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<AiUsageTracker>();
 builder.Services.AddSingleton<RolePermissionService>();
 builder.Services.AddSingleton<ChatReadOnlyDb>();
 builder.Services.AddScoped<ChatService>();
@@ -339,6 +341,39 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"[Startup] Table creation warning (ai_chat_session/message): {ex.Message}");
+    }
+
+    try
+    {
+        // Pemakaian token Claude dan catatan top-up kredit (halaman admin Pemakaian AI)
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ai_usage_log (
+                id_log TEXT PRIMARY KEY,
+                id_permintaan TEXT NOT NULL,
+                id_user TEXT NULL,
+                fitur TEXT NOT NULL,
+                model TEXT NOT NULL,
+                input_tokens BIGINT NOT NULL DEFAULT 0,
+                output_tokens BIGINT NOT NULL DEFAULT 0,
+                cache_read_tokens BIGINT NOT NULL DEFAULT 0,
+                cache_write_tokens BIGINT NOT NULL DEFAULT 0,
+                biaya_usd NUMERIC(14,6) NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS ix_ai_usage_log_created ON ai_usage_log(created_at);
+            CREATE TABLE IF NOT EXISTS ai_credit_topup (
+                id_topup TEXT PRIMARY KEY,
+                jumlah_usd NUMERIC(14,2) NOT NULL,
+                tanggal TIMESTAMP NOT NULL,
+                catatan TEXT NULL,
+                created_by TEXT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Table creation warning (ai_usage_log/ai_credit_topup): {ex.Message}");
     }
 
     // Backfill: kontrak yang punya amandemen di tabel amandemen_kontrak tapi kolom tanggal

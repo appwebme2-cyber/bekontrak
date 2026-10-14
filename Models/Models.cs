@@ -460,6 +460,36 @@ public class LogAkses
 }
 
 // Kontrak favorit per user, supaya kontrak yang sering dibuka cepat ditemukan.
+/// <summary>Pemakaian token Claude per panggilan API (untuk estimasi biaya di halaman admin).</summary>
+public class AiUsageLog
+{
+    [Key]
+    public string IdLog { get; set; } = Guid.NewGuid().ToString();
+    /// <summary>Satu pertanyaan chatbot / satu ekstraksi bisa terdiri dari beberapa panggilan API.</summary>
+    public string IdPermintaan { get; set; } = string.Empty;
+    public string? IdUser { get; set; }
+    public string Fitur { get; set; } = string.Empty; // chatbot | ekstraksi
+    public string Model { get; set; } = string.Empty;
+    public long InputTokens { get; set; }
+    public long OutputTokens { get; set; }
+    public long CacheReadTokens { get; set; }
+    public long CacheWriteTokens { get; set; }
+    public decimal BiayaUsd { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>Pengisian kredit Anthropic yang dicatat manual oleh admin (untuk perkiraan sisa saldo).</summary>
+public class AiCreditTopup
+{
+    [Key]
+    public string IdTopup { get; set; } = Guid.NewGuid().ToString();
+    public decimal JumlahUsd { get; set; }
+    public DateTime Tanggal { get; set; }
+    public string? Catatan { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 /// <summary>Satu percakapan chatbot milik seorang user.</summary>
 public class AiChatSession
 {

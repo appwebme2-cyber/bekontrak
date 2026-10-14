@@ -28,6 +28,8 @@ public class AppDbContext : DbContext
     public DbSet<LogAkses> LogAkses { get; set; }
     public DbSet<KontrakFavorit> KontrakFavorits { get; set; }
     public DbSet<AiChatSession> AiChatSessions { get; set; }
+    public DbSet<AiUsageLog> AiUsageLogs { get; set; }
+    public DbSet<AiCreditTopup> AiCreditTopups { get; set; }
     public DbSet<AiChatMessage> AiChatMessages { get; set; }
     public DbSet<RabItem> RabItems { get; set; }
     public DbSet<MaterialRequirementDraft> MaterialRequirementDrafts { get; set; }
@@ -62,6 +64,29 @@ public class AppDbContext : DbContext
             e.Property(p => p.IdFavorit).HasColumnName("id_favorit");
             e.Property(p => p.IdUser).HasColumnName("id_user");
             e.Property(p => p.IdKontrak).HasColumnName("id_kontrak");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+        });
+        modelBuilder.Entity<AiUsageLog>().ToTable("ai_usage_log");
+        modelBuilder.Entity<AiUsageLog>(e => {
+            e.Property(p => p.IdLog).HasColumnName("id_log");
+            e.Property(p => p.IdPermintaan).HasColumnName("id_permintaan");
+            e.Property(p => p.IdUser).HasColumnName("id_user");
+            e.Property(p => p.Fitur).HasColumnName("fitur");
+            e.Property(p => p.Model).HasColumnName("model");
+            e.Property(p => p.InputTokens).HasColumnName("input_tokens");
+            e.Property(p => p.OutputTokens).HasColumnName("output_tokens");
+            e.Property(p => p.CacheReadTokens).HasColumnName("cache_read_tokens");
+            e.Property(p => p.CacheWriteTokens).HasColumnName("cache_write_tokens");
+            e.Property(p => p.BiayaUsd).HasColumnName("biaya_usd").HasColumnType("numeric(14,6)");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+        });
+        modelBuilder.Entity<AiCreditTopup>().ToTable("ai_credit_topup");
+        modelBuilder.Entity<AiCreditTopup>(e => {
+            e.Property(p => p.IdTopup).HasColumnName("id_topup");
+            e.Property(p => p.JumlahUsd).HasColumnName("jumlah_usd").HasColumnType("numeric(14,2)");
+            e.Property(p => p.Tanggal).HasColumnName("tanggal");
+            e.Property(p => p.Catatan).HasColumnName("catatan");
+            e.Property(p => p.CreatedBy).HasColumnName("created_by");
             e.Property(p => p.CreatedAt).HasColumnName("created_at");
         });
         modelBuilder.Entity<AiChatSession>().ToTable("ai_chat_session");

@@ -29,16 +29,18 @@ public class ChatService
 
     private readonly AppDbContext _db;
     private readonly ChatReadOnlyDb _readOnlyDb;
+    private readonly AiUsageTracker _usage;
     private readonly string? _apiKey;
     private readonly string _model;
 
     private List<KontrakRow>? _kontrakCache;
     private List<TagihanRow>? _tagihanCache;
 
-    public ChatService(AppDbContext db, ChatReadOnlyDb readOnlyDb, IConfiguration config)
+    public ChatService(AppDbContext db, ChatReadOnlyDb readOnlyDb, AiUsageTracker usage, IConfiguration config)
     {
         _db = db;
         _readOnlyDb = readOnlyDb;
+        _usage = usage;
         _apiKey = config["Anthropic:ApiKey"];
         _model = string.IsNullOrWhiteSpace(config["Anthropic:ChatModel"]) ? "claude-opus-5-5" : config["Anthropic:ChatModel"]!;
     }
@@ -321,6 +323,7 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
         };
 
         await Status("Memahami pertanyaan...");
+        var requestId = Guid.NewGuid().ToString();
 
         for (var round = 0; round <= MaxToolRounds; round++)
         {
@@ -337,6 +340,9 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
                 },
                 Messages = messages,
             });
+            await _usage.RecordAsync(requestId, "chatbot", _model,
+                response.Usage.InputTokens, response.Usage.OutputTokens,
+                response.Usage.CacheReadInputTokens, response.Usage.CacheCreationInputTokens);
 
             if (response.StopReason == "refusal")
                 return TextAnswer("Maaf, pertanyaan ini tidak dapat saya proses. Coba ajukan dengan kalimat lain.");
