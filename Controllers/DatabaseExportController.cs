@@ -33,7 +33,10 @@ public class DatabaseExportController : ControllerBase
         await using var conn = new NpgsqlConnection(connStr);
         await conn.OpenAsync();
 
-        using var writer = new StreamWriter(Response.Body, new UTF8Encoding(false), leaveOpen: true);
+        // await using: penutupan StreamWriter harus asinkron. Dengan "using" biasa, Dispose melakukan Flush
+        // sinkron ke Response.Body yang dilarang ASP.NET Core, sehingga koneksi diputus di akhir unduhan
+        // (browser: "Failed to fetch" / ERR_HTTP2_PROTOCOL_ERROR).
+        await using var writer = new StreamWriter(Response.Body, new UTF8Encoding(false), leaveOpen: true);
 
         await writer.WriteLineAsync($"-- PostgreSQL backup generated at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         await writer.WriteLineAsync("-- Restore: psql -d <target_db> -f backup.sql");
@@ -53,26 +56,36 @@ public class DatabaseExportController : ControllerBase
             await writer.WriteLineAsync($"-- Table: {table}");
             await writer.WriteLineAsync($"-- =====================");
 
-            var columns = await GetColumnsAsync(conn, table);
-            if (columns.Count == 0) continue;
-
-            var colList = string.Join(", ", columns.Select(c => $"\"{c}\""));
-
-            await using var dataCmd = new NpgsqlCommand($"SELECT * FROM \"{table}\"", conn);
-            dataCmd.CommandTimeout = 300;
-            await using var reader = await dataCmd.ExecuteReaderAsync();
-
-            int rowCount = 0;
-            while (await reader.ReadAsync())
+            // Satu tabel gagal tidak boleh membatalkan seluruh backup: catat di file lalu lanjut
+            try
             {
-                var values = string.Join(", ", Enumerable.Range(0, reader.FieldCount)
-                    .Select(i => FormatValue(reader, i)));
-                await writer.WriteLineAsync($"INSERT INTO \"{table}\" ({colList}) VALUES ({values}) ON CONFLICT DO NOTHING;");
-                rowCount++;
-            }
+                var columns = await GetColumnsAsync(conn, table);
+                if (columns.Count == 0) continue;
 
-            if (rowCount > 0)
-                await writer.WriteLineAsync($"-- {rowCount} rows inserted");
+                var colList = string.Join(", ", columns.Select(c => $"\"{c}\""));
+
+                await using var dataCmd = new NpgsqlCommand($"SELECT * FROM \"{table}\"", conn);
+                dataCmd.CommandTimeout = 300;
+                await using var reader = await dataCmd.ExecuteReaderAsync();
+
+                int rowCount = 0;
+                while (await reader.ReadAsync())
+                {
+                    var values = string.Join(", ", Enumerable.Range(0, reader.FieldCount)
+                        .Select(i => FormatValue(reader, i)));
+                    await writer.WriteLineAsync($"INSERT INTO \"{table}\" ({colList}) VALUES ({values}) ON CONFLICT DO NOTHING;");
+                    rowCount++;
+                }
+
+                if (rowCount > 0)
+                    await writer.WriteLineAsync($"-- {rowCount} rows inserted");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Gagal export tabel {Table}", table);
+                var message = ex.Message.Replace('\n', ' ').Replace('\r', ' ');
+                await writer.WriteLineAsync($"-- GAGAL export tabel {table}: {message}");
+            }
             await writer.WriteLineAsync();
         }
 
