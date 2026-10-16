@@ -29,6 +29,7 @@ public class ChatService
 
     private readonly AppDbContext _db;
     private readonly ChatReadOnlyDb _readOnlyDb;
+    private readonly ICurrentRu _currentRu;
     private readonly AiUsageTracker _usage;
     private readonly string? _apiKey;
     private readonly string _model;
@@ -36,10 +37,11 @@ public class ChatService
     private List<KontrakRow>? _kontrakCache;
     private List<TagihanRow>? _tagihanCache;
 
-    public ChatService(AppDbContext db, ChatReadOnlyDb readOnlyDb, AiUsageTracker usage, IConfiguration config)
+    public ChatService(AppDbContext db, ChatReadOnlyDb readOnlyDb, AiUsageTracker usage, ICurrentRu currentRu, IConfiguration config)
     {
         _db = db;
         _readOnlyDb = readOnlyDb;
+        _currentRu = currentRu;
         _usage = usage;
         _apiKey = config["Anthropic:ApiKey"];
         _model = string.IsNullOrWhiteSpace(config["Anthropic:ChatModel"]) ? "claude-opus-5-5" : config["Anthropic:ChatModel"]!;
@@ -262,7 +264,7 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
             {
                 Name = "query_data",
                 Description =
-                    "Jalankan SATU query SQL SELECT (PostgreSQL, boleh WITH/JOIN/GROUP BY) yang hanya bisa membaca view berikut:\n" +
+                    "Jalankan SATU query SQL SELECT (PostgreSQL, boleh WITH/JOIN/GROUP BY) yang hanya bisa membaca view berikut (tulis nama tabel langsung, tanpa nama schema):\n" +
                     _readOnlyDb.SchemaDescription +
                     "\n\nCatatan: status kontrak bervariasi (Aktif/Active, Selesai/Completed) - pakai ILIKE atau IN. Kolom *_baru di kontrak berisi nilai/tanggal hasil amandemen terakhir; pakai COALESCE(kolom_baru, kolom_awal) untuk nilai terkini. Hasil maksimal " + ChatReadOnlyDb.MaxRows +
                     " baris - utamakan agregasi (COUNT/SUM/AVG + GROUP BY) dan LIMIT. Tanpa titik koma dan komentar.",
@@ -484,7 +486,8 @@ Kalau ditanya langkah teknis penggunaan menu yang tidak Anda ketahui pasti, jela
             "cari_tagihan" => await CariTagihanAsync(input, ct),
             "ringkasan_tagihan" => await RingkasanTagihanAsync(input, ct),
             "cari_amandemen" => await CariAmandemenAsync(input, ct),
-            "query_data" => await _readOnlyDb.QueryAsync(Str(input, "sql") ?? string.Empty, ct),
+            // Multi-RU: query bebas hanya membaca data RU pengguna (Super Admin/Head Office: semua RU)
+            "query_data" => await _readOnlyDb.QueryAsync(Str(input, "sql") ?? string.Empty, _currentRu.Filter, ct),
             _ => new { error = $"Tool tidak dikenal: {name}" },
         };
 

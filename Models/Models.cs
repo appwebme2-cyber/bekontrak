@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Models;
 
@@ -64,8 +65,11 @@ public class Vendor
 }
 
 
-public class DireksiPekerjaan
+public class DireksiPekerjaan : IRuOwned
 {
+    /// <summary>RU pemilik data (multi-RU); diisi otomatis saat disimpan.</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
     [Key]
     public string IdDireksiPekerjaan { get; set; } = Guid.NewGuid().ToString();
     [Required]
@@ -77,8 +81,11 @@ public class DireksiPekerjaan
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
-public class ProgramKerja
+public class ProgramKerja : IRuOwned
 {
+    /// <summary>RU pemilik data (multi-RU); diisi otomatis saat disimpan.</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
     [Key]
     public string IdProgramKerja { get; set; } = Guid.NewGuid().ToString();
     [Required]
@@ -87,8 +94,11 @@ public class ProgramKerja
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
-public class Planner
+public class Planner : IRuOwned
 {
+    /// <summary>RU pemilik data (multi-RU); diisi otomatis saat disimpan.</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
     [Key]
     public string IdPlanner { get; set; } = Guid.NewGuid().ToString();
     [Required]
@@ -111,8 +121,11 @@ public class SlaSetting
 }
  
 
-public class Kontrak
+public class Kontrak : IRuOwned
 {
+    /// <summary>RU pemilik data (multi-RU); diisi otomatis saat disimpan.</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
     [Key]
     public string IdKontrak { get; set; } = Guid.NewGuid().ToString();
     [Required]
@@ -293,8 +306,11 @@ public class MonitoringLtsa
     public Kontrak? Kontrak { get; set; }
 }
 
-public class Padi
+public class Padi : IRuOwned
 {
+    /// <summary>RU pemilik data (multi-RU); diisi otomatis saat disimpan.</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
     [Key]
     public string IdPadi { get; set; } = Guid.NewGuid().ToString();
     [Required]
@@ -359,8 +375,11 @@ public class DokumenApproval
 
 
 
-public class DailyReport
+public class DailyReport : IRuOwned
 {
+    /// <summary>RU pemilik data (multi-RU); diisi otomatis saat disimpan.</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
     [Key]
     public string IdReport { get; set; } = Guid.NewGuid().ToString();
     [Required]
@@ -464,8 +483,11 @@ public class TokenBlacklist
     public DateTime RevokedAt { get; set; } = DateTime.UtcNow;
 }
 
-public class LogAkses
+public class LogAkses : IRuOwned
 {
+    /// <summary>RU pemilik data (multi-RU); diisi otomatis saat disimpan.</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
     [Key]
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string UserId { get; set; } = "";
@@ -480,8 +502,11 @@ public class LogAkses
 
 // Kontrak favorit per user, supaya kontrak yang sering dibuka cepat ditemukan.
 /// <summary>Pemakaian token Claude per panggilan API (untuk estimasi biaya di halaman admin).</summary>
-public class AiUsageLog
+public class AiUsageLog : IRuOwned
 {
+    /// <summary>RU pemilik data (multi-RU); diisi otomatis saat disimpan.</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
     [Key]
     public string IdLog { get; set; } = Guid.NewGuid().ToString();
     /// <summary>Satu pertanyaan chatbot / satu ekstraksi bisa terdiri dari beberapa panggilan API.</summary>
@@ -573,8 +598,11 @@ public class RabItem
 }
 
 // Header 1 Rekomendasi/MRF yang mau didraft kebutuhan material & pekerjaannya.
-public class MaterialRequirementDraft
+public class MaterialRequirementDraft : IRuOwned
 {
+    /// <summary>RU pemilik data (multi-RU); diisi otomatis saat disimpan.</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
     [Key]
     public string IdDraft { get; set; } = Guid.NewGuid().ToString();
     [Required]

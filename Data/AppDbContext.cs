@@ -1,11 +1,44 @@
 using Microsoft.EntityFrameworkCore;
 using RefineryContractAPI.Models;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    private readonly ICurrentRu? _currentRu;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentRu? currentRu = null) : base(options)
+    {
+        _currentRu = currentRu;
+    }
+
+    /// <summary>RU untuk menyaring data request ini; null = semua RU. Dibaca filter global di OnModelCreating.</summary>
+    private string? RuFilter => _currentRu?.Filter;
+
+    // RU diisi server untuk data baru, dan tidak bisa diubah lewat edit biasa
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        StampRu();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        StampRu();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void StampRu()
+    {
+        foreach (var entry in ChangeTracker.Entries<IRuOwned>())
+        {
+            if (entry.State == EntityState.Added && string.IsNullOrEmpty(entry.Entity.IdRu))
+                entry.Entity.IdRu = _currentRu?.WriteRu ?? CurrentRu.DefaultRu;
+            else if (entry.State == EntityState.Modified)
+                entry.Property(nameof(IRuOwned.IdRu)).IsModified = false;
+        }
+    }
 
     public DbSet<Profile> Profiles { get; set; }
     public DbSet<Ru> Rus { get; set; }
@@ -467,5 +500,31 @@ public class AppDbContext : DbContext
             e.Property(p => p.IpAddress).HasColumnName("ip_address");
             e.Property(p => p.CreatedAt).HasColumnName("created_at");
         });
+
+        // ===== Multi-RU: filter otomatis per RU =====
+        // Setiap query ke data di bawah otomatis hanya mengambil data RU yang berlaku (lihat ICurrentRu),
+        // jadi endpoint yang lupa menyaring pun tidak bisa membocorkan data RU lain. RuFilter null = semua RU.
+        modelBuilder.Entity<Kontrak>().HasQueryFilter(k => RuFilter == null || k.IdRu == RuFilter);
+        modelBuilder.Entity<Padi>().HasQueryFilter(x => RuFilter == null || x.IdRu == RuFilter);
+        modelBuilder.Entity<DailyReport>().HasQueryFilter(x => RuFilter == null || x.IdRu == RuFilter);
+        modelBuilder.Entity<MaterialRequirementDraft>().HasQueryFilter(x => RuFilter == null || x.IdRu == RuFilter);
+        modelBuilder.Entity<DireksiPekerjaan>().HasQueryFilter(x => RuFilter == null || x.IdRu == RuFilter);
+        modelBuilder.Entity<ProgramKerja>().HasQueryFilter(x => RuFilter == null || x.IdRu == RuFilter);
+        modelBuilder.Entity<Planner>().HasQueryFilter(x => RuFilter == null || x.IdRu == RuFilter);
+        modelBuilder.Entity<LogAkses>().HasQueryFilter(x => RuFilter == null || x.IdRu == RuFilter);
+        modelBuilder.Entity<AiUsageLog>().HasQueryFilter(x => RuFilter == null || x.IdRu == RuFilter);
+        modelBuilder.Entity<Profile>().HasQueryFilter(x => RuFilter == null || x.IdRu == RuFilter);
+
+        // Data turunan mengikuti RU kontraknya / draft-nya
+        modelBuilder.Entity<AmandemenKontrak>().HasQueryFilter(x => RuFilter == null || x.Kontrak!.IdRu == RuFilter);
+        modelBuilder.Entity<Tagihan>().HasQueryFilter(x => RuFilter == null || x.Kontrak!.IdRu == RuFilter);
+        modelBuilder.Entity<ProgressLumpsum>().HasQueryFilter(x => RuFilter == null || x.Kontrak!.IdRu == RuFilter);
+        modelBuilder.Entity<ProgressUnitPrice>().HasQueryFilter(x => RuFilter == null || x.Kontrak!.IdRu == RuFilter);
+        modelBuilder.Entity<MonitoringLtsa>().HasQueryFilter(x => RuFilter == null || x.Kontrak!.IdRu == RuFilter);
+        modelBuilder.Entity<DokumenApproval>().HasQueryFilter(x => RuFilter == null || x.Kontrak!.IdRu == RuFilter);
+        modelBuilder.Entity<RabItem>().HasQueryFilter(x => RuFilter == null || x.Kontrak!.IdRu == RuFilter);
+        modelBuilder.Entity<MaterialRequirementLine>().HasQueryFilter(x => RuFilter == null || x.Draft!.IdRu == RuFilter);
+        modelBuilder.Entity<KontrakFavorit>().HasQueryFilter(x => RuFilter == null || Kontraks.Any(k => k.IdKontrak == x.IdKontrak && k.IdRu == RuFilter));
+        modelBuilder.Entity<SlaTagihan>().HasQueryFilter(x => RuFilter == null || Kontraks.Any(k => k.IdKontrak == x.IdKontrak && k.IdRu == RuFilter));
     }
 }

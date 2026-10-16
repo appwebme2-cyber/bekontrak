@@ -71,6 +71,8 @@ builder.Services.AddSingleton<FileTokenService>();
 builder.Services.AddSingleton<AiExtractionService>();
 builder.Services.AddSingleton<PinGuard>();
 builder.Services.AddHttpContextAccessor();
+// RU yang berlaku per request (multi-RU); dipakai filter otomatis di AppDbContext
+builder.Services.AddScoped<ICurrentRu, CurrentRu>();
 builder.Services.AddSingleton<AiUsageTracker>();
 builder.Services.AddSingleton<RolePermissionService>();
 builder.Services.AddSingleton<ChatReadOnlyDb>();

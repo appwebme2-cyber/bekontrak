@@ -23,6 +23,8 @@ public class DatabaseExportController : ControllerBase
     [HttpGet("download")]
     public async Task<IActionResult> DownloadSql()
     {
+        if (!IsSuperAdmin()) return SuperAdminOnly();
+
         var connStr = _config.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string tidak ditemukan.");
 
@@ -119,6 +121,8 @@ public class DatabaseExportController : ControllerBase
     [RequestSizeLimit(100 * 1024 * 1024)] // 100 MB max
     public async Task<IActionResult> ImportSql(IFormFile file)
     {
+        if (!IsSuperAdmin()) return SuperAdminOnly();
+
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "File .sql tidak boleh kosong." });
 
@@ -307,6 +311,13 @@ public class DatabaseExportController : ControllerBase
 
         return statements;
     }
+
+    // Backup/import membaca & menulis seluruh database tanpa saringan RU, jadi hanya untuk
+    // Super Admin (admin tanpa RU). Token lama tanpa klaim id_ru milik admin = Super Admin.
+    private bool IsSuperAdmin() => string.IsNullOrEmpty(User.FindFirst("id_ru")?.Value);
+
+    private ObjectResult SuperAdminOnly() =>
+        StatusCode(403, new { message = "Backup dan import database hanya untuk Super Admin." });
 
     private static async Task<List<string>> GetTablesAsync(NpgsqlConnection conn)
     {
