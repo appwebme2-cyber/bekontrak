@@ -21,6 +21,25 @@ public class Profile
     public string? IdVendor { get; set; }
     [ForeignKey("IdVendor")]
     public Vendor? Vendor { get; set; }
+    /// <summary>RU tempat user bekerja. Null untuk admin = Super Admin (pusat, semua RU).</summary>
+    [Column("id_ru")]
+    public string? IdRu { get; set; }
+}
+
+/// <summary>Refinery Unit (RU II Dumai ... RU VII Kasim). Data awal diisi saat startup.</summary>
+public class Ru
+{
+    [Key]
+    [Column("id_ru")]
+    public string IdRu { get; set; } = string.Empty;
+    [Column("kode")]
+    public string Kode { get; set; } = string.Empty;
+    [Column("nama")]
+    public string Nama { get; set; } = string.Empty;
+    [Column("urutan")]
+    public int Urutan { get; set; }
+    [Column("is_active")]
+    public bool IsActive { get; set; } = true;
 }
 
 public class Vendor

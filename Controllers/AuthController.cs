@@ -95,6 +95,7 @@ public class AuthController : ControllerBase
             Email = dto.Email,
             FullName = dto.FullName ?? dto.Email,
             Role = "user",    // public register selalu user
+            IdRu = "RU4",
             IsActive = false,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
@@ -120,6 +121,9 @@ public class AuthController : ControllerBase
             Email = dto.Email,
             FullName = dto.FullName ?? dto.Email,
             Role = !string.IsNullOrEmpty(dto.Role) ? dto.Role : "user",
+            // Multi-RU tahap 1: admin baru = Super Admin (tanpa RU); selain itu RU IV Cilacap.
+            // Pilihan RU saat menambah pengguna menyusul di tahap tampilan.
+            IdRu = dto.Role == "admin" ? null : "RU4",
             IsActive = false,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
@@ -243,7 +247,9 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role),
-            new Claim("full_name", user.FullName ?? "")
+            new Claim("full_name", user.FullName ?? ""),
+            // Kosong = Super Admin (semua RU); dipakai penyaringan data per RU di tahap berikutnya
+            new Claim("id_ru", user.IdRu ?? "")
         };
 
         var token = new JwtSecurityToken(

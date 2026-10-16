@@ -376,6 +376,70 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"[Startup] Table creation warning (ai_usage_log/ai_credit_topup): {ex.Message}");
     }
 
+    // ===== Multi-RU tahap 1 (fondasi) =====
+    // Hanya MENAMBAH tabel & kolom; tidak mengubah/menghapus data. Semua data yang sudah ada dan
+    // data baru (termasuk yang dimasukkan sistem luar seperti bot WhatsApp) otomatis RU IV Cilacap
+    // lewat nilai default, jadi perilaku aplikasi untuk Cilacap tidak berubah.
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ru (
+                id_ru TEXT PRIMARY KEY,
+                kode TEXT NOT NULL,
+                nama TEXT NOT NULL,
+                urutan INTEGER NOT NULL DEFAULT 0,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE
+            );
+            INSERT INTO ru (id_ru, kode, nama, urutan) VALUES
+                ('RU2', 'RU II', 'Dumai', 2),
+                ('RU3', 'RU III', 'Plaju', 3),
+                ('RU4', 'RU IV', 'Cilacap', 4),
+                ('RU5', 'RU V', 'Balikpapan', 5),
+                ('RU6', 'RU VI', 'Balongan', 6),
+                ('RU7', 'RU VII', 'Kasim', 7)
+            ON CONFLICT (id_ru) DO NOTHING;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Multi-RU warning (tabel ru): {ex.Message}");
+    }
+
+    // Data utama yang dimiliki satu RU. Data turunan (amandemen, tagihan, progress, dokumen, RAB, favorit)
+    // mengikuti RU kontraknya; vendor dipakai bersama semua RU.
+    foreach (var table in new[] {
+        "kontrak", "padi", "daily_report", "material_requirement_draft",
+        "direksi_pekerjaan", "program_kerja", "planner", "log_akses", "ai_usage_log" })
+    {
+        try
+        {
+            db.Database.ExecuteSqlRaw($@"
+                ALTER TABLE {table} ADD COLUMN IF NOT EXISTS id_ru TEXT;
+                UPDATE {table} SET id_ru = 'RU4' WHERE id_ru IS NULL;
+                ALTER TABLE {table} ALTER COLUMN id_ru SET DEFAULT 'RU4';
+                CREATE INDEX IF NOT EXISTS ix_{table}_id_ru ON {table}(id_ru);
+            ");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Startup] Multi-RU warning (kolom id_ru di {table}): {ex.Message}");
+        }
+    }
+
+    try
+    {
+        // Pengguna: admin tanpa RU = Super Admin (pusat); selain admin otomatis RU IV Cilacap
+        db.Database.ExecuteSqlRaw(@"
+            ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id_ru TEXT;
+            UPDATE profiles SET id_ru = 'RU4' WHERE id_ru IS NULL AND role <> 'admin';
+            CREATE INDEX IF NOT EXISTS ix_profiles_id_ru ON profiles(id_ru);
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Multi-RU warning (kolom id_ru di profiles): {ex.Message}");
+    }
+
     // Backfill: kontrak yang punya amandemen di tabel amandemen_kontrak tapi kolom tanggal
     // amandemen-nya di tabel kontrak masih kosong/usang (sebelum AmandemenController
     // menyinkronkannya). Amandemen terakhir (nomor_urut tertinggi yang mengisi tanggal) menang;

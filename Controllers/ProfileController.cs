@@ -79,6 +79,9 @@ public class ProfileController : ControllerBase
 
         profile.Role = dto.Role;
         profile.UpdatedAt = DateTime.UtcNow;
+        // Multi-RU: non-admin wajib punya RU (RU kosong hanya untuk Super Admin)
+        if (profile.Role != "admin" && string.IsNullOrEmpty(profile.IdRu))
+            profile.IdRu = "RU4";
 
         await _context.SaveChangesAsync();
         return Ok(new { message = "Role berhasil diperbarui" });
@@ -101,6 +104,9 @@ public class ProfileController : ControllerBase
 
         if (!string.IsNullOrEmpty(dto.Role))
             profile.Role = dto.Role;
+        // Multi-RU: non-admin wajib punya RU (RU kosong hanya untuk Super Admin)
+        if (profile.Role != "admin" && string.IsNullOrEmpty(profile.IdRu))
+            profile.IdRu = "RU4";
 
         if (!string.IsNullOrEmpty(dto.Email))
         {

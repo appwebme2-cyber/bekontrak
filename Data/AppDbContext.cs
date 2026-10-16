@@ -8,6 +8,7 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Profile> Profiles { get; set; }
+    public DbSet<Ru> Rus { get; set; }
     public DbSet<Vendor> Vendors { get; set; }
     public DbSet<Kontrak> Kontraks { get; set; }
     public DbSet<AmandemenKontrak> AmandemenKontraks { get; set; }
@@ -43,6 +44,7 @@ public class AppDbContext : DbContext
 
         // Table names mapping
         modelBuilder.Entity<Profile>().ToTable("profiles");
+        modelBuilder.Entity<Ru>().ToTable("ru");
         modelBuilder.Entity<SlaSetting>().ToTable("sla_setting");
         modelBuilder.Entity<SlaTagihan>().ToTable("sla_tagihan");
         modelBuilder.Entity<Vendor>().ToTable("vendor");
