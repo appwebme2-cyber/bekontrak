@@ -87,7 +87,7 @@ public class AiUsageController : ControllerBase
             .ToList();
 
         var userIds = logs.Where(l => l.IdUser != null).Select(l => l.IdUser!).Distinct().ToList();
-        var names = await _context.Profiles.AsNoTracking()
+        var names = await _context.Profiles.IgnoreQueryFilters().AsNoTracking() // nama Super Admin (tanpa RU) tetap tampil
             .Where(p => userIds.Contains(p.Id))
             .Select(p => new { p.Id, Nama = p.FullName ?? p.Email })
             .ToDictionaryAsync(p => p.Id, p => p.Nama);

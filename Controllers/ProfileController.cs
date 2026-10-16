@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.DTOs;
 using RefineryContractAPI.Models;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Controllers;
 
@@ -22,7 +23,7 @@ public class ProfileController : ControllerBase
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (userId == null) return Unauthorized();
 
-        var profile = await _context.Profiles.FindAsync(userId);
+        var profile = await _context.Profiles.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == userId);
         if (profile == null) return NotFound();
 
         return Ok(MapToDto(profile));
@@ -46,7 +47,7 @@ public class ProfileController : ControllerBase
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (userId == null) return Unauthorized();
 
-        var profile = await _context.Profiles.FindAsync(userId);
+        var profile = await _context.Profiles.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == userId);
         if (profile == null) return NotFound();
 
         profile.FullName = dto.FullName ?? profile.FullName;
@@ -102,6 +103,18 @@ public class ProfileController : ControllerBase
         if (!string.IsNullOrEmpty(dto.FullName))
             profile.FullName = dto.FullName;
 
+        // Multi-RU: hanya Super Admin yang boleh memindahkan RU pengguna
+        if (dto.IdRu != null && IsSuperAdmin())
+        {
+            var ru = dto.IdRu.Trim().ToUpperInvariant();
+            if (ru.Length == 0)
+                profile.IdRu = null; // hanya berlaku untuk admin (= Super Admin); non-admin diisi lagi di bawah
+            else if (CurrentRu.ValidRus.Contains(ru))
+                profile.IdRu = ru;
+            else
+                return BadRequest(new { message = "RU tidak valid." });
+        }
+
         if (!string.IsNullOrEmpty(dto.Role))
             profile.Role = dto.Role;
         // Multi-RU: non-admin wajib punya RU (RU kosong hanya untuk Super Admin)
@@ -113,7 +126,7 @@ public class ProfileController : ControllerBase
             if (!System.Net.Mail.MailAddress.TryCreate(dto.Email, out _))
                 return BadRequest(new { message = "Format email tidak valid." });
 
-            var emailTaken = await _context.Profiles
+            var emailTaken = await _context.Profiles.IgnoreQueryFilters()
                 .AnyAsync(p => p.Email == dto.Email && p.Id != id);
             if (emailTaken)
                 return Conflict(new { message = "Email sudah digunakan oleh pengguna lain." });
@@ -188,6 +201,11 @@ public class ProfileController : ControllerBase
         Role = p.Role,
         IdVendor = p.IdVendor,
         CreatedAt = p.CreatedAt,
-        IsActive = p.IsActive   // ← tambah ini
+        IsActive = p.IsActive,   // ← tambah ini
+        IdRu = p.IdRu
     };
+
+    // Super Admin = admin tanpa RU (token lama tanpa klaim id_ru milik admin juga Super Admin)
+    private bool IsSuperAdmin() =>
+        User.IsInRole("admin") && string.IsNullOrEmpty(User.FindFirst("id_ru")?.Value);
 }

@@ -13,6 +13,8 @@ public class RegisterDto
     public string Password { get; set; } = string.Empty;
     public string? FullName { get; set; }
     public string Role { get; set; } = "user";
+    /// <summary>RU pengguna baru (multi-RU). Hanya dipakai Super Admin; kosong untuk admin = Super Admin.</summary>
+    public string? IdRu { get; set; }
 }
 
 public class AuthResponseDto
@@ -599,6 +601,7 @@ public class ProfileDto
     public DateTime? CreatedAt { get; set; }
     public string? IdVendor { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? IdRu { get; set; }
 }
 
 
@@ -624,6 +627,8 @@ public class AdminUpdateUserDto
     public string? FullName { get; set; }
     public string? Email { get; set; }
     public string? Role { get; set; }
+    /// <summary>Pindah RU (hanya Super Admin). "" untuk admin = jadikan Super Admin.</summary>
+    public string? IdRu { get; set; }
 }
 
 

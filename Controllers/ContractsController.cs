@@ -28,7 +28,7 @@ public class ContractsController : ControllerBase
         // Kalau role vendor/external → hanya tampilkan kontrak milik vendor tersebut
         if ((userRole == "vendor" || userRole == "external") && userId != null)
         {
-            var profile = await _context.Profiles.FindAsync(userId);
+            var profile = await _context.Profiles.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == userId);
             if (profile?.IdVendor == null)
                 return Ok(new List<KontrakDto>()); // vendor tanpa id_vendor → kosong
 

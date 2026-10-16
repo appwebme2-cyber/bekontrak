@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.DTOs;
 using RefineryContractAPI.Models;
+using RefineryContractAPI.Services;
 using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -86,7 +87,7 @@ public class AuthController : ControllerBase
         if (!string.Equals(_config["Auth:AllowPublicRegister"], "true", StringComparison.OrdinalIgnoreCase))
             return NotFound(new { message = "Pendaftaran mandiri tidak tersedia. Hubungi admin untuk dibuatkan akun." });
 
-        var exists = await _context.Profiles.AnyAsync(u => u.Email == dto.Email);
+        var exists = await _context.Profiles.IgnoreQueryFilters().AnyAsync(u => u.Email == dto.Email); // email unik di semua RU
         if (exists)
             return BadRequest(new { message = "Email sudah terdaftar" });
 
@@ -112,18 +113,36 @@ public class AuthController : ControllerBase
     [Authorize(Roles = "admin")]
     public async Task<IActionResult> AdminRegister([FromBody] RegisterDto dto)
     {
-        var exists = await _context.Profiles.AnyAsync(u => u.Email == dto.Email);
+        var exists = await _context.Profiles.IgnoreQueryFilters().AnyAsync(u => u.Email == dto.Email); // email unik di semua RU
         if (exists)
             return BadRequest(new { message = "Email sudah terdaftar" });
+
+        // Multi-RU: Admin RU selalu membuat pengguna di RU-nya sendiri (tidak bisa membuat Super Admin).
+        // Super Admin memilih RU; admin tanpa RU = Super Admin, selain admin wajib punya RU (default RU IV).
+        var newRole = !string.IsNullOrEmpty(dto.Role) ? dto.Role : "user";
+        var callerRu = User.FindFirst("id_ru")?.Value;
+        string? newRu;
+        if (!string.IsNullOrEmpty(callerRu))
+        {
+            newRu = callerRu;
+        }
+        else
+        {
+            var requested = (dto.IdRu ?? string.Empty).Trim().ToUpperInvariant();
+            if (requested.Length == 0)
+                newRu = newRole == "admin" ? null : CurrentRu.DefaultRu;
+            else if (CurrentRu.ValidRus.Contains(requested))
+                newRu = requested;
+            else
+                return BadRequest(new { message = "RU tidak valid." });
+        }
 
         var user = new Profile
         {
             Email = dto.Email,
             FullName = dto.FullName ?? dto.Email,
-            Role = !string.IsNullOrEmpty(dto.Role) ? dto.Role : "user",
-            // Multi-RU tahap 1: admin baru = Super Admin (tanpa RU); selain itu RU IV Cilacap.
-            // Pilihan RU saat menambah pengguna menyusul di tahap tampilan.
-            IdRu = dto.Role == "admin" ? null : "RU4",
+            Role = newRole,
+            IdRu = newRu,
             IsActive = false,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
@@ -148,7 +167,7 @@ public class AuthController : ControllerBase
         if (dto.SeedToken != seedToken)
             return Unauthorized(new { message = "Seed token tidak valid." });
 
-        var hasUsers = await _context.Profiles.AnyAsync();
+        var hasUsers = await _context.Profiles.IgnoreQueryFilters().AnyAsync();
         if (hasUsers)
             return BadRequest(new { message = "Database sudah ada user. Endpoint ini hanya untuk DB kosong." });
 
@@ -217,7 +236,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var user = await _context.Profiles.FindAsync(userId);
+        var user = await _context.Profiles.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == userId);
 
         if (user == null)
             return NotFound(new { message = "User tidak ditemukan" });
