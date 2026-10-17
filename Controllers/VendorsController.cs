@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.DTOs;
 using RefineryContractAPI.Models;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Controllers;
 
@@ -101,10 +102,29 @@ public class VendorsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
+    [SuperAdminOnly] // vendor dipakai bersama semua RU
     public async Task<IActionResult> Delete(string id)
     {
         var vendor = await _context.Vendors.FindAsync(id);
         if (vendor == null) return NotFound();
+
+        // Cek pemakaian di SEMUA RU (admin RU hanya melihat kontrak RU-nya, vendor bisa tampak "tidak dipakai")
+        var jumlahKontrak = await _context.Kontraks.IgnoreQueryFilters().CountAsync(k => k.IdVendor == id);
+        var jumlahPadi = await _context.Padis.IgnoreQueryFilters().CountAsync(p => p.IdVendor == id);
+        var jumlahAkun = await _context.Profiles.IgnoreQueryFilters().CountAsync(p => p.IdVendor == id);
+        if (jumlahKontrak + jumlahPadi + jumlahAkun > 0)
+        {
+            var dipakai = new List<string>();
+            if (jumlahKontrak > 0) dipakai.Add($"{jumlahKontrak} kontrak");
+            if (jumlahPadi > 0) dipakai.Add($"{jumlahPadi} PADI");
+            if (jumlahAkun > 0) dipakai.Add($"{jumlahAkun} akun vendor");
+            return Conflict(new
+            {
+                message = $"Vendor tidak dapat dihapus karena masih dipakai {string.Join(", ", dipakai)} (di semua RU). " +
+                          "Ubah status vendor menjadi tidak aktif bila sudah tidak dipakai.",
+            });
+        }
 
         _context.Vendors.Remove(vendor);
         await _context.SaveChangesAsync();

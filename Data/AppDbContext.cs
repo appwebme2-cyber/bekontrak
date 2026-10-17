@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using RefineryContractAPI.Models;
 using RefineryContractAPI.Services;
 
@@ -20,13 +21,58 @@ public class AppDbContext : DbContext
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         StampRu();
+        var (kontrakIds, draftIds) = CollectParentRefs();
+        if (kontrakIds.Count > 0 && Kontraks.Count(k => kontrakIds.Contains(k.IdKontrak)) < kontrakIds.Count)
+            throw new RuParentNotFoundException("Kontrak");
+        if (draftIds.Count > 0 && MaterialRequirementDrafts.Count(d => draftIds.Contains(d.IdDraft)) < draftIds.Count)
+            throw new RuParentNotFoundException("Draft kebutuhan material");
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         StampRu();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        var (kontrakIds, draftIds) = CollectParentRefs();
+        if (kontrakIds.Count > 0 && await Kontraks.CountAsync(k => kontrakIds.Contains(k.IdKontrak), cancellationToken) < kontrakIds.Count)
+            throw new RuParentNotFoundException("Kontrak");
+        if (draftIds.Count > 0 && await MaterialRequirementDrafts.CountAsync(d => draftIds.Contains(d.IdDraft), cancellationToken) < draftIds.Count)
+            throw new RuParentNotFoundException("Draft kebutuhan material");
+        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>
+    /// Multi-RU: kontrak/draft yang dirujuk data turunan baru atau yang induknya diganti (tagihan,
+    /// amandemen, progress, RAB, dokumen, favorit, SLA tagihan, baris kebutuhan material). Semuanya
+    /// harus terlihat di RU request ini; dicek lewat query yang ikut tersaring RU.
+    /// Kosong untuk Super Admin/Head Office saat "Semua RU" dan proses tanpa login (tanpa saringan).
+    /// </summary>
+    private (List<string> Kontrak, List<string> Draft) CollectParentRefs()
+    {
+        var kontrak = new HashSet<string>();
+        var draft = new HashSet<string>();
+        if (RuFilter == null) return (kontrak.ToList(), draft.ToList());
+
+        // Induk yang dibuat di penyimpanan yang sama belum ada di database
+        var kontrakBaru = ChangeTracker.Entries<Kontrak>()
+            .Where(e => e.State == EntityState.Added).Select(e => e.Entity.IdKontrak).ToHashSet();
+        var draftBaru = ChangeTracker.Entries<MaterialRequirementDraft>()
+            .Where(e => e.State == EntityState.Added).Select(e => e.Entity.IdDraft).ToHashSet();
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State != EntityState.Added && entry.State != EntityState.Modified) continue;
+            if (entry.Entity is not Kontrak) AddRef(entry, nameof(Kontrak.IdKontrak), kontrak, kontrakBaru);
+            if (entry.Entity is not MaterialRequirementDraft) AddRef(entry, nameof(MaterialRequirementDraft.IdDraft), draft, draftBaru);
+        }
+        return (kontrak.ToList(), draft.ToList());
+
+        static void AddRef(EntityEntry entry, string property, HashSet<string> target, HashSet<string> skip)
+        {
+            if (entry.Metadata.FindProperty(property) == null) return;
+            var prop = entry.Property(property);
+            if (entry.State == EntityState.Modified && !prop.IsModified) return;
+            if (prop.CurrentValue is string id && id.Length > 0 && !skip.Contains(id)) target.Add(id);
+        }
     }
 
     private void StampRu()
@@ -87,6 +133,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SlaTagihan>().ToTable("sla_tagihan");
         modelBuilder.Entity<Vendor>().ToTable("vendor");
         modelBuilder.Entity<Kontrak>().ToTable("kontrak");
+        // Vendor dipakai bersama semua RU: menghapus vendor tidak boleh ikut menghapus kontrak (dulu cascade)
+        modelBuilder.Entity<Kontrak>()
+            .HasOne(k => k.Vendor).WithMany(v => v.Kontraks)
+            .HasForeignKey(k => k.IdVendor)
+            .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<AmandemenKontrak>().ToTable("amandemen_kontrak");
         modelBuilder.Entity<Tagihan>().ToTable("tagihan");
         modelBuilder.Entity<ProgressLumpsum>().ToTable("progress_lumpsum");

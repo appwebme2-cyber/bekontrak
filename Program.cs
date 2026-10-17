@@ -77,7 +77,11 @@ builder.Services.AddSingleton<AiUsageTracker>();
 builder.Services.AddSingleton<RolePermissionService>();
 builder.Services.AddSingleton<ChatReadOnlyDb>();
 builder.Services.AddScoped<ChatService>();
-builder.Services.AddControllers(options => options.Filters.Add<ReadOnlyRoleFilter>());
+builder.Services.AddControllers(o =>
+{
+    o.Filters.Add<ReadOnlyRoleFilter>();
+    o.Filters.Add<RuParentNotFoundFilter>(); // multi-RU: data turunan ke kontrak RU lain = 404
+});
 builder.Services.AddDirectoryBrowser();
 
 // ==================== CORS ====================
@@ -501,6 +505,30 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"[Startup] Backfill warning (nilai amandemen kontrak): {ex.Message}");
+    }
+
+    // Vendor dipakai bersama semua RU: FK kontrak -> vendor jangan ON DELETE CASCADE (hapus vendor
+    // dulu ikut menghapus semua kontraknya). Ganti ke RESTRICT; idempotent (hanya FK yang masih cascade).
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            DO $$
+            DECLARE c record;
+            BEGIN
+                FOR c IN SELECT conname FROM pg_constraint
+                         WHERE conrelid = 'kontrak'::regclass AND confrelid = 'vendor'::regclass
+                           AND contype = 'f' AND confdeltype = 'c'
+                LOOP
+                    EXECUTE format('ALTER TABLE kontrak DROP CONSTRAINT %I', c.conname);
+                    EXECUTE format('ALTER TABLE kontrak ADD CONSTRAINT %I FOREIGN KEY (id_vendor) REFERENCES vendor(id_vendor) ON DELETE RESTRICT', c.conname);
+                    RAISE NOTICE 'FK % diubah ke RESTRICT', c.conname;
+                END LOOP;
+            END $$;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Warning (FK kontrak-vendor ke RESTRICT): {ex.Message}");
     }
 
     // Role database baca-saja + view tanpa kolom sensitif untuk tool query_data chatbot

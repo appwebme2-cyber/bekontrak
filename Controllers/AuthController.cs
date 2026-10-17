@@ -120,6 +120,10 @@ public class AuthController : ControllerBase
         // Multi-RU: Admin RU selalu membuat pengguna di RU-nya sendiri (tidak bisa membuat Super Admin).
         // Super Admin memilih RU; admin tanpa RU = Super Admin, selain admin wajib punya RU (default RU IV).
         var newRole = !string.IsNullOrEmpty(dto.Role) ? dto.Role : "user";
+        // Head Office bisa melihat semua RU, jadi hanya Super Admin yang boleh membuatnya
+        if (string.Equals(newRole.Trim(), "head_office", StringComparison.OrdinalIgnoreCase) && !User.IsSuperAdmin())
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new { message = "Akun Head Office (akses semua RU) hanya dapat dibuat oleh Super Admin." });
         var callerRu = User.FindFirst("id_ru")?.Value;
         string? newRu;
         if (!string.IsNullOrEmpty(callerRu))

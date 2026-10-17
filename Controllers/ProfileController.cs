@@ -77,6 +77,7 @@ public class ProfileController : ControllerBase
 
         var profile = await _context.Profiles.FindAsync(id);
         if (profile == null) return NotFound(new { message = "User tidak ditemukan" });
+        if (GuardHeadOffice(profile, dto.Role) is { } ditolak) return ditolak;
 
         profile.Role = dto.Role;
         profile.UpdatedAt = DateTime.UtcNow;
@@ -99,6 +100,7 @@ public class ProfileController : ControllerBase
 
         var profile = await _context.Profiles.FindAsync(id);
         if (profile == null) return NotFound(new { message = "User tidak ditemukan" });
+        if (GuardHeadOffice(profile, dto.Role) is { } ditolak) return ditolak;
 
         if (!string.IsNullOrEmpty(dto.FullName))
             profile.FullName = dto.FullName;
@@ -151,6 +153,7 @@ public class ProfileController : ControllerBase
 
         var profile = await _context.Profiles.FindAsync(id);
         if (profile == null) return NotFound(new { message = "User tidak ditemukan" });
+        if (GuardHeadOffice(profile, null) is { } ditolak) return ditolak;
 
         profile.IsActive = !profile.IsActive;
         profile.UpdatedAt = DateTime.UtcNow;
@@ -170,6 +173,7 @@ public class ProfileController : ControllerBase
 
         var profile = await _context.Profiles.FindAsync(id);
         if (profile == null) return NotFound(new { message = "User tidak ditemukan" });
+        if (GuardHeadOffice(profile, null) is { } ditolak) return ditolak;
 
         _context.Profiles.Remove(profile);
         await _context.SaveChangesAsync();
@@ -184,6 +188,7 @@ public class ProfileController : ControllerBase
     {
         var profile = await _context.Profiles.FindAsync(id);
         if (profile == null) return NotFound(new { message = "User tidak ditemukan" });
+        if (GuardHeadOffice(profile, null) is { } ditolak) return ditolak;
 
         profile.IdVendor = dto.IdVendor;
         profile.UpdatedAt = DateTime.UtcNow;
@@ -206,4 +211,17 @@ public class ProfileController : ControllerBase
     };
 
     private bool IsSuperAdmin() => User.IsSuperAdmin();
+
+    // Multi-RU: Head Office bisa melihat semua RU, jadi hanya Super Admin yang boleh memberi role itu
+    // atau mengelola akun Head Office (admin RU tidak bisa membuka akses lintas RU).
+    private IActionResult? GuardHeadOffice(Profile target, string? newRole)
+    {
+        if (IsSuperAdmin()) return null;
+        if (!IsHeadOffice(target.Role) && !IsHeadOffice(newRole)) return null;
+        return StatusCode(StatusCodes.Status403Forbidden,
+            new { message = "Akun Head Office (akses semua RU) hanya dapat dikelola oleh Super Admin." });
+    }
+
+    private static bool IsHeadOffice(string? role) =>
+        string.Equals(role?.Trim(), "head_office", StringComparison.OrdinalIgnoreCase);
 }

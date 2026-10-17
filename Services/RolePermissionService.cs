@@ -41,18 +41,20 @@ public class RolePermissionService
     /// <summary>True kalau role punya minimal satu hak tulis (tambah/ubah/hapus/upload/approval/kelola).</summary>
     public async Task<bool> CanWriteAsync(string? role)
     {
+        foreach (var flag in FlagNames)
+            if (await HasFlagAsync(role, flag)) return true;
+        return false;
+    }
+
+    /// <summary>True kalau role punya hak tertentu (mis. "canDelete") menurut Pengaturan Role. Admin selalu boleh.</summary>
+    public async Task<bool> HasFlagAsync(string? role, string flag)
+    {
         if (string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase)) return true;
 
         var resolved = ResolveRole(role);
         var saved = await GetSavedAsync();
         saved.TryGetValue(resolved, out var roleFlags);
-
-        foreach (var flag in FlagNames)
-        {
-            var value = roleFlags != null && roleFlags.TryGetValue(flag, out var v) ? v : DefaultFlag(resolved, flag);
-            if (value) return true;
-        }
-        return false;
+        return roleFlags != null && roleFlags.TryGetValue(flag, out var v) ? v : DefaultFlag(resolved, flag);
     }
 
     private static string ResolveRole(string? role)

@@ -19,6 +19,14 @@ public class ReadOnlyRoleFilter : IAsyncActionFilter
         "Chat", // chatbot hanya membaca data; POST dipakai untuk mengirim pertanyaan
     };
 
+    // Hapus data utama wajib hak "hapus" (Pengaturan Role), sama seperti tombol hapus di tampilan.
+    // Hapus rincian di dalam form edit (amandemen, baris RAB/material, dokumen, lampiran) cukup hak tulis.
+    private static readonly HashSet<string> DeleteNeedsCanDelete = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Contracts", "Vendors", "Tagihan", "Padi", "MaterialRequirementDrafts",
+        "DireksiPekerjaan", "ProgramKerja", "Planner", "DailyReport",
+    };
+
     private readonly RolePermissionService _permissions;
 
     public ReadOnlyRoleFilter(RolePermissionService permissions) => _permissions = permissions;
@@ -48,6 +56,16 @@ public class ReadOnlyRoleFilter : IAsyncActionFilter
         if (!await _permissions.CanWriteAsync(role))
         {
             context.Result = new ObjectResult(new { message = "Akun Anda hanya memiliki akses lihat (read-only) dan tidak dapat mengubah data." })
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+            };
+            return;
+        }
+
+        if (HttpMethods.IsDelete(method) && controller != null && DeleteNeedsCanDelete.Contains(controller)
+            && !await _permissions.HasFlagAsync(role, "canDelete"))
+        {
+            context.Result = new ObjectResult(new { message = "Akun Anda tidak memiliki hak untuk menghapus data ini." })
             {
                 StatusCode = StatusCodes.Status403Forbidden,
             };
