@@ -52,6 +52,13 @@ public class ReadOnlyRoleFilter : IAsyncActionFilter
             return;
         }
 
+        // POST yang tidak menyimpan data (mis. ekstraksi AI) boleh untuk akun hanya-baca
+        if (context.ActionDescriptor.EndpointMetadata.OfType<AllowReadOnlyRolesAttribute>().Any())
+        {
+            await next();
+            return;
+        }
+
         var role = http.User.FindFirstValue(ClaimTypes.Role);
         if (!await _permissions.CanWriteAsync(role))
         {

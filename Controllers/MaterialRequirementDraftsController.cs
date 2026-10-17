@@ -204,8 +204,14 @@ public class MaterialRequirementDraftsController : ControllerBase
     }
 
     [HttpPost("{id}/extract-ai")]
+    [AllowReadOnlyRoles] // hanya mengembalikan usulan, tidak menyimpan: semua akun internal boleh (dengan PIN)
     public async Task<IActionResult> ExtractAi(string id, [FromBody] ExtractAiRequestDto dto)
     {
+        // Vendor/External tidak memakai fitur AI (sama seperti chatbot)
+        var role = (User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty).Trim().ToLowerInvariant();
+        if (role is "external" or "vendor")
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Fitur AI tidak tersedia untuk akun vendor." });
+
         try
         {
             // PIN dicek terhadap env variable "PIN" (lihat PinGuard; dipakai bersama chatbot)
