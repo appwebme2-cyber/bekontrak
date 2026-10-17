@@ -43,6 +43,7 @@ public class LogAksesController : ControllerBase
             .Take(pageSize)
             .Select(l => new {
                 l.Id,
+                idRu      = l.IdRu, // multi-RU: RU tempat aktivitas (PUSAT = Super Admin/Head Office saat "Semua RU")
                 l.UserId,
                 namaUser  = l.NamaUser,
                 l.Role,
