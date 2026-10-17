@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.DTOs;
 using RefineryContractAPI.Models;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Controllers;
 
@@ -51,6 +52,7 @@ public class PlannerController : ControllerBase
     }
 
     [HttpPost]
+    [RequireSelectedRu] // multi-RU: Super Admin/Head Office wajib memilih RU dulu
     public async Task<IActionResult> Create([FromBody] CreatePlannerDto dto)
     {
         var entity = new Planner

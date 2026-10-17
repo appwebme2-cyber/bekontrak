@@ -113,6 +113,7 @@ public class MaterialRequirementDraftsController : ControllerBase
     }
 
     [HttpPost]
+    [RequireSelectedRu] // multi-RU: Super Admin/Head Office wajib memilih RU dulu
     public async Task<IActionResult> Create([FromBody] CreateMaterialRequirementDraftDto dto)
     {
         try

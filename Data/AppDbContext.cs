@@ -34,7 +34,12 @@ public class AppDbContext : DbContext
         foreach (var entry in ChangeTracker.Entries<IRuOwned>())
         {
             if (entry.State == EntityState.Added && string.IsNullOrEmpty(entry.Entity.IdRu))
-                entry.Entity.IdRu = _currentRu?.WriteRu ?? CurrentRu.DefaultRu;
+            {
+                // Catatan aktivitas & pemakaian AI Super Admin/Head Office saat "Semua RU" milik pusat,
+                // bukan RU IV (tidak muncul di laporan RU mana pun, tetap terhitung di total).
+                var pusat = _currentRu is { IsCrossRu: true, Filter: null } && entry.Entity is LogAkses or AiUsageLog;
+                entry.Entity.IdRu = pusat ? "PUSAT" : _currentRu?.WriteRu ?? CurrentRu.DefaultRu;
+            }
             else if (entry.State == EntityState.Modified)
                 entry.Property(nameof(IRuOwned.IdRu)).IsModified = false;
         }

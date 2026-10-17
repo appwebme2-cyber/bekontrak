@@ -102,7 +102,8 @@ builder.Services.AddCors(options =>
 
         policy.WithOrigins(allOrigins)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .WithExposedHeaders("X-Ru-Required"); // multi-RU: tanda wajib pilih RU (dibaca tampilan)
     });
 });
 
