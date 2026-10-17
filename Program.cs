@@ -480,6 +480,29 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"[Startup] Backfill warning (tanggal amandemen kontrak): {ex.Message}");
     }
 
+    // Backfill nilai kontrak baru dari amandemen terakhir yang mengisi nilai (pola sama dengan tanggal di atas).
+    // Idempotent: hanya baris yang berbeda yang diubah, jumlahnya dicatat di log.
+    try
+    {
+        var nilaiDiperbarui = db.Database.ExecuteSqlRaw(@"
+            UPDATE kontrak k SET nilai_kontrak_baru = a.nilai_kontrak_baru
+            FROM (
+                SELECT DISTINCT ON (id_kontrak) id_kontrak, nilai_kontrak_baru
+                FROM amandemen_kontrak
+                WHERE nilai_kontrak_baru IS NOT NULL AND nilai_kontrak_baru > 0
+                ORDER BY id_kontrak, nomor_urut DESC
+            ) a
+            WHERE k.id_kontrak = a.id_kontrak
+              AND k.nilai_kontrak_baru IS DISTINCT FROM a.nilai_kontrak_baru;
+        ");
+        if (nilaiDiperbarui > 0)
+            Console.WriteLine($"[Startup] Sinkron nilai kontrak dari amandemen: {nilaiDiperbarui} kontrak diperbarui");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Backfill warning (nilai amandemen kontrak): {ex.Message}");
+    }
+
     // Role database baca-saja + view tanpa kolom sensitif untuk tool query_data chatbot
     await app.Services.GetRequiredService<ChatReadOnlyDb>().InitializeAsync();
 }

@@ -64,10 +64,10 @@ public class AmandemenController : ControllerBase
         return Ok(new { message = "Berhasil", idAmandemen = amandemen.IdAmandemen });
     }
 
-    // Salin tanggal mulai/selesai baru dari amandemen terakhir (nomor urut tertinggi yang
-    // mengisi tanggal itu) ke kolom kontrak, supaya seluruh tampilan (detail, kartu, dashboard,
-    // perhitungan durasi) memakai tanggal amandemen. Tanpa ini kontrak hanya ditandai
-    // has_amendment=true sementara tanggalnya tetap tanggal lama.
+    // Salin tanggal mulai/selesai baru dan nilai kontrak baru dari amandemen terakhir (nomor urut
+    // tertinggi yang mengisi kolom itu) ke kolom kontrak, supaya seluruh tampilan (detail, kartu,
+    // dashboard, Perbandingan RU, API publik, perhitungan durasi) memakai data amandemen. Tanpa ini
+    // kontrak hanya ditandai has_amendment=true sementara tanggal & nilainya tetap yang lama.
     private async Task SyncKontrakDariAmandemenAsync(string idKontrak)
     {
         var kontrak = await _context.Kontraks.FindAsync(idKontrak);
@@ -81,6 +81,8 @@ public class AmandemenController : ControllerBase
         kontrak.HasAmendment = amandemens.Count > 0;
         kontrak.TanggalMulaiBaru = amandemens.FirstOrDefault(a => a.TanggalMulaiBaru != null)?.TanggalMulaiBaru;
         kontrak.TanggalSelesaiBaru = amandemens.FirstOrDefault(a => a.TanggalSelesaiBaru != null)?.TanggalSelesaiBaru;
+        // Amandemen waktu saja (tanpa nilai) tidak mengubah nilai; tanpa nilai sama sekali = kembali ke nilai awal
+        kontrak.NilaiKontrakBaru = amandemens.FirstOrDefault(a => a.NilaiKontrakBaru > 0)?.NilaiKontrakBaru;
         kontrak.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
