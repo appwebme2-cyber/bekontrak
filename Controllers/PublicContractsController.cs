@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RefineryContractAPI.Data;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Controllers;
 
@@ -30,8 +31,10 @@ public class PublicContractsController : ControllerBase
         _config = config;
     }
 
-    // GET /api/public/contracts?page=1&pageSize=50&status=Active&tipe=Lumpsum&q=kata
+    // GET /api/public/contracts?page=1&pageSize=50&status=Active&tipe=Lumpsum&q=kata&ru=RU4
     // Tambahkan all=true untuk mengambil semua kontrak sekaligus tanpa paging.
+    // Multi-RU: API key utama melihat semua RU (bisa disaring ?ru=RU4); API key per RU
+    // (PublicApi__RuKeys__RU2 dst.) hanya melihat kontrak RU-nya sendiri.
     [HttpGet]
     public async Task<IActionResult> GetList(
         [FromQuery] int page = 1,
@@ -39,15 +42,24 @@ public class PublicContractsController : ControllerBase
         [FromQuery] string? status = null,
         [FromQuery] string? tipe = null,
         [FromQuery] string? q = null,
-        [FromQuery] bool all = false)
+        [FromQuery] bool all = false,
+        [FromQuery] string? ru = null)
     {
-        var denied = CheckApiKey();
+        var denied = CheckApiKey(out var keyRu);
         if (denied != null) return denied;
+
+        var requestedRu = (ru ?? string.Empty).Trim().ToUpperInvariant();
+        if (keyRu == null && requestedRu.Length > 0 && !CurrentRu.ValidRus.Contains(requestedRu))
+            return BadRequest(new { message = "Parameter ru tidak valid. Contoh: ru=RU4" });
+        var ruFilter = keyRu ?? (requestedRu.Length > 0 ? requestedRu : null);
 
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
         var query = _context.Kontraks.AsNoTracking().AsQueryable();
+
+        if (ruFilter != null)
+            query = query.Where(k => k.IdRu == ruFilter);
 
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(k => k.StatusKontrak == status);
@@ -70,6 +82,7 @@ public class PublicContractsController : ControllerBase
             .Select(k => new
             {
                 id = k.IdKontrak,
+                ru = k.IdRu,
                 judul = k.JudulKontrak,
                 noDokumen = k.NoDokumenKontrak,
                 noPoPr = k.NoPoPr,
@@ -94,13 +107,15 @@ public class PublicContractsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetDetail(string id)
     {
-        var denied = CheckApiKey();
+        var denied = CheckApiKey(out var keyRu);
         if (denied != null) return denied;
 
         var k = await _context.Kontraks.AsNoTracking()
             .Include(x => x.Vendor)
             .FirstOrDefaultAsync(x => x.IdKontrak == id);
-        if (k == null) return NotFound(new { message = "Kontrak tidak ditemukan." });
+        // API key per RU tidak boleh membuka kontrak RU lain (dijawab sama seperti tidak ada)
+        if (k == null || (keyRu != null && k.IdRu != keyRu))
+            return NotFound(new { message = "Kontrak tidak ditemukan." });
 
         var amandemen = await _context.AmandemenKontraks.AsNoTracking()
             .Where(a => a.IdKontrak == id)
@@ -183,11 +198,26 @@ public class PublicContractsController : ControllerBase
         });
     }
 
-    /// <summary>Null bila API key valid; selain itu hasil penolakan yang harus dikembalikan.</summary>
-    private IActionResult? CheckApiKey()
+    /// <summary>
+    /// Null bila API key valid; selain itu hasil penolakan yang harus dikembalikan.
+    /// keyRu: null untuk API key utama (semua RU), atau RU pemilik API key per RU.
+    /// </summary>
+    private IActionResult? CheckApiKey(out string? keyRu)
     {
-        var configured = _config["PublicApi:ApiKey"];
-        if (string.IsNullOrEmpty(configured) || configured.Length < MinKeyLength)
+        keyRu = null;
+
+        // API key utama (semua RU) dan API key per RU: PublicApi__RuKeys__RU2, PublicApi__RuKeys__RU3, dst.
+        var keys = new List<(string Key, string? Ru)>();
+        var main = _config["PublicApi:ApiKey"];
+        if (!string.IsNullOrEmpty(main) && main.Length >= MinKeyLength)
+            keys.Add((main, null));
+        foreach (var entry in _config.GetSection("PublicApi:RuKeys").GetChildren())
+        {
+            var ruKode = entry.Key.Trim().ToUpperInvariant();
+            if (CurrentRu.ValidRus.Contains(ruKode) && !string.IsNullOrEmpty(entry.Value) && entry.Value.Length >= MinKeyLength)
+                keys.Add((entry.Value, ruKode));
+        }
+        if (keys.Count == 0)
             return NotFound(new { message = "API publik tidak aktif." });
 
         // Header lebih aman; ?apiKey= disediakan supaya bisa dibuka lewat link di browser.
@@ -195,8 +225,19 @@ public class PublicContractsController : ControllerBase
         if (string.IsNullOrEmpty(provided))
             provided = Request.Query["apiKey"].ToString();
         var a = SHA256.HashData(Encoding.UTF8.GetBytes(provided));
-        var b = SHA256.HashData(Encoding.UTF8.GetBytes(configured));
-        if (!CryptographicOperations.FixedTimeEquals(a, b))
+
+        // Bandingkan dengan semua key (tanpa berhenti di tengah) supaya waktu respons tidak membocorkan apa pun
+        var matched = false;
+        foreach (var (key, ru) in keys)
+        {
+            var b = SHA256.HashData(Encoding.UTF8.GetBytes(key));
+            if (CryptographicOperations.FixedTimeEquals(a, b) && !matched)
+            {
+                matched = true;
+                keyRu = ru;
+            }
+        }
+        if (!matched)
             return Unauthorized(new { message = "API key tidak valid." });
 
         return null;

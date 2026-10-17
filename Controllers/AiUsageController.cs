@@ -17,6 +17,7 @@ namespace RefineryContractAPI.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "admin")]
+[SuperAdminOnly] // kredit AI dipakai bersama semua RU
 public class AiUsageController : ControllerBase
 {
     private const decimal DefaultKursIdr = 16500m;
@@ -42,13 +43,13 @@ public class AiUsageController : ControllerBase
         var monthStartUtc = new DateTime(nowWib.Year, nowWib.Month, 1).AddHours(-7);
         var periodStartUtc = nowWib.Date.AddDays(-(days - 1)).AddHours(-7);
 
-        var totalBiaya = await _context.AiUsageLogs.SumAsync(l => (decimal?)l.BiayaUsd) ?? 0m;
+        var totalBiaya = await _context.AiUsageLogs.IgnoreQueryFilters().SumAsync(l => (decimal?)l.BiayaUsd) ?? 0m;
         var totalTopup = await _context.AiCreditTopups.SumAsync(t => (decimal?)t.JumlahUsd) ?? 0m;
-        var biayaHariIni = await _context.AiUsageLogs.Where(l => l.CreatedAt >= todayStartUtc).SumAsync(l => (decimal?)l.BiayaUsd) ?? 0m;
-        var biayaBulanIni = await _context.AiUsageLogs.Where(l => l.CreatedAt >= monthStartUtc).SumAsync(l => (decimal?)l.BiayaUsd) ?? 0m;
-        var pencatatanSejak = await _context.AiUsageLogs.MinAsync(l => (DateTime?)l.CreatedAt);
+        var biayaHariIni = await _context.AiUsageLogs.IgnoreQueryFilters().Where(l => l.CreatedAt >= todayStartUtc).SumAsync(l => (decimal?)l.BiayaUsd) ?? 0m;
+        var biayaBulanIni = await _context.AiUsageLogs.IgnoreQueryFilters().Where(l => l.CreatedAt >= monthStartUtc).SumAsync(l => (decimal?)l.BiayaUsd) ?? 0m;
+        var pencatatanSejak = await _context.AiUsageLogs.IgnoreQueryFilters().MinAsync(l => (DateTime?)l.CreatedAt);
 
-        var logs = await _context.AiUsageLogs.AsNoTracking()
+        var logs = await _context.AiUsageLogs.IgnoreQueryFilters().AsNoTracking()
             .Where(l => l.CreatedAt >= periodStartUtc)
             .Select(l => new { l.CreatedAt, l.IdPermintaan, l.IdUser, l.Fitur, l.Model, l.InputTokens, l.OutputTokens, l.CacheReadTokens, l.BiayaUsd })
             .ToListAsync();

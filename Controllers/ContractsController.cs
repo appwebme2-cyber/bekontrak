@@ -262,6 +262,7 @@ public class ContractsController : ControllerBase
     private static KontrakDto MapToDto(Kontrak k) => new()
     {
         IdKontrak = k.IdKontrak,
+        IdRu = k.IdRu,
         IdVendor = k.IdVendor,
         JudulKontrak = k.JudulKontrak,
         NoDokumenKontrak = k.NoDokumenKontrak,

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
+using RefineryContractAPI.Services;
 using System.Globalization;
 using System.Text;
 
@@ -314,7 +315,7 @@ public class DatabaseExportController : ControllerBase
 
     // Backup/import membaca & menulis seluruh database tanpa saringan RU, jadi hanya untuk
     // Super Admin (admin tanpa RU). Token lama tanpa klaim id_ru milik admin = Super Admin.
-    private bool IsSuperAdmin() => string.IsNullOrEmpty(User.FindFirst("id_ru")?.Value);
+    private bool IsSuperAdmin() => User.IsSuperAdmin();
 
     private ObjectResult SuperAdminOnly() =>
         StatusCode(403, new { message = "Backup dan import database hanya untuk Super Admin." });

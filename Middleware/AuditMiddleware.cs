@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.Models;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Middleware;
 
@@ -102,9 +103,15 @@ public class AuditMiddleware
         {
             using var scope = context.RequestServices.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            // Multi-RU: aktivitas user lintas RU saat "Semua RU" dicatat sebagai PUSAT, supaya tidak
+            // muncul di Report Akses RU tertentu. Saat satu RU dipilih, dicatat ke RU tersebut.
+            var currentRu = scope.ServiceProvider.GetRequiredService<ICurrentRu>();
+            string? logRu = currentRu.IsCrossRu && currentRu.Filter == null ? "PUSAT" : null;
+
             db.LogAkses.Add(new LogAkses
             {
                 Id       = Guid.NewGuid().ToString(),
+                IdRu     = logRu, // null = diisi otomatis dengan RU user saat disimpan
                 UserId   = userId,
                 NamaUser = namaUser,
                 Role     = role,

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.DTOs;
 using RefineryContractAPI.Models;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Controllers;
 
@@ -36,6 +37,8 @@ public class SlaSettingController : ControllerBase
     }
 
     [HttpPut("{kodeTahap}")]
+    [Authorize(Roles = "admin")]
+    [SuperAdminOnly] // batas SLA berlaku untuk semua RU
     public async Task<IActionResult> Update(string kodeTahap, [FromBody] UpdateSlaSettingDto dto)
     {
         var setting = await _context.SlaSettings.FindAsync(kodeTahap);

@@ -173,6 +173,7 @@ public class KontrakDto
     public int? MasaPemeliharaanHari { get; set; }
     public int? JumlahTagihan { get; set; }
     public VendorDto? Vendor { get; set; }
+    public string? IdRu { get; set; } // multi-RU: RU pemilik kontrak
 }
 
 public class CreateKontrakDto

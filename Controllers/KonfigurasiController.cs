@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.DTOs;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Controllers;
 
@@ -33,6 +34,7 @@ public class KonfigurasiController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "admin")]
+    [SuperAdminOnly] // konfigurasi & hak akses role berlaku untuk semua RU
     public async Task<IActionResult> Create([FromBody] CreateKonfigurasiDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.NamaSetting))
@@ -66,6 +68,8 @@ public class KonfigurasiController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "admin")]
+    [SuperAdminOnly]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateKonfigurasiDto dto)
     {
         var config = await _context.KonfigurasiSistems.FindAsync(id);

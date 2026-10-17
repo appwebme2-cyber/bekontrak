@@ -205,7 +205,5 @@ public class ProfileController : ControllerBase
         IdRu = p.IdRu
     };
 
-    // Super Admin = admin tanpa RU (token lama tanpa klaim id_ru milik admin juga Super Admin)
-    private bool IsSuperAdmin() =>
-        User.IsInRole("admin") && string.IsNullOrEmpty(User.FindFirst("id_ru")?.Value);
+    private bool IsSuperAdmin() => User.IsSuperAdmin();
 }
