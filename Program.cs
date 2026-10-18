@@ -560,6 +560,45 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"[Startup] Warning (FK kontrak-vendor ke RESTRICT): {ex.Message}");
     }
 
+    // Dokumen approval lama tersimpan di disk server (hilang setiap deploy tanpa volume): pindahkan yang
+    // masih ada ke R2, dan catat berapa yang filenya sudah tidak ada. Idempotent (hanya alamat /uploads/).
+    try
+    {
+        var lama = await db.DokumenApprovals.IgnoreQueryFilters()
+            .Where(d => d.FileUrl != null && d.FileUrl.StartsWith("/uploads/"))
+            .ToListAsync();
+        if (lama.Count > 0)
+        {
+            var r2 = app.Services.GetRequiredService<R2StorageService>();
+            int dipindah = 0, hilang = 0, gagal = 0;
+            foreach (var d in lama)
+            {
+                if (!System.IO.File.Exists(d.FilePath)) { hilang++; continue; }
+                try
+                {
+                    var key = $"dokumen-approval/{d.IdKontrak}/{Guid.NewGuid()}{Path.GetExtension(d.FilePath)}";
+                    await using (var fs = System.IO.File.OpenRead(d.FilePath))
+                        await r2.UploadAsync(fs, key, d.TipeFile ?? "application/octet-stream");
+                    var url = $"/api/FileUpload/file/{key}";
+                    await db.DokumenApprovals.IgnoreQueryFilters()
+                        .Where(x => x.IdDokumen == d.IdDokumen)
+                        .ExecuteUpdateAsync(u => u.SetProperty(x => x.FilePath, key).SetProperty(x => x.FileUrl, url));
+                    dipindah++;
+                }
+                catch (Exception ex)
+                {
+                    gagal++;
+                    Console.WriteLine($"[Startup] Warning (pindah dokumen {d.IdDokumen} ke R2): {ex.Message}");
+                }
+            }
+            Console.WriteLine($"[Startup] Dokumen approval lama: {dipindah} dipindah ke R2, {hilang} filenya sudah tidak ada di server, {gagal} gagal");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Warning (pindah dokumen approval ke R2): {ex.Message}");
+    }
+
     // Role database baca-saja + view tanpa kolom sensitif untuk tool query_data chatbot
     await app.Services.GetRequiredService<ChatReadOnlyDb>().InitializeAsync();
 }

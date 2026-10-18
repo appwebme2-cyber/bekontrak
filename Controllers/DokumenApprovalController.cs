@@ -16,10 +16,12 @@ public class DokumenApprovalController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _env;
     private readonly PushNotifier _push;
+    private readonly R2StorageService _r2;
 
-    public DokumenApprovalController(AppDbContext context, IWebHostEnvironment env, PushNotifier push)
+    public DokumenApprovalController(AppDbContext context, IWebHostEnvironment env, PushNotifier push, R2StorageService r2)
     {
         _push = push;
+        _r2 = r2;
         _context = context;
         _env = env;
     }
@@ -117,24 +119,25 @@ public class DokumenApprovalController : ControllerBase
         if (!allowedTypes.Contains(file.ContentType))
             return BadRequest(new { message = "Tipe file tidak diizinkan. Gunakan PDF, Word, Excel, atau gambar." });
 
-        // Buat folder uploads
-        var uploadsFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads", idKontrak);
-        if (!Directory.Exists(uploadsFolder))
-            Directory.CreateDirectory(uploadsFolder);
+        // Kontrak harus ada di RU pengguna sebelum file diunggah (tidak meninggalkan file yatim di R2)
+        if (!await _context.Kontraks.AnyAsync(k => k.IdKontrak == idKontrak))
+            return NotFound(new { message = "Kontrak tidak ditemukan di RU Anda." });
 
-        // Generate nama file unik
+        // Disimpan di R2 (sama dengan dokumen kontrak), bukan disk server yang hilang setiap deploy.
+        // Dibuka lewat token unduh /api/FileUpload/file/{key} yang hanya diberikan untuk data di RU pengguna.
         var ext = Path.GetExtension(file.FileName);
-        var uniqueFileName = $"{Guid.NewGuid()}{ext}";
-        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-        // Simpan file
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        var key = $"dokumen-approval/{idKontrak}/{Guid.NewGuid()}{ext}";
+        try
         {
-            await file.CopyToAsync(stream);
+            using var stream = file.OpenReadStream();
+            await _r2.UploadAsync(stream, key, file.ContentType);
         }
-
-        // URL untuk akses file
-        var fileUrl = $"/uploads/{idKontrak}/{uniqueFileName}";
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal menyimpan file: {ex.Message}" });
+        }
+        var filePath = key;
+        var fileUrl = $"/api/FileUpload/file/{key}";
 
         var dokumen = new DokumenApproval
         {
@@ -187,9 +190,16 @@ public class DokumenApprovalController : ControllerBase
         var dokumen = await _context.DokumenApprovals.FindAsync(id);
         if (dokumen == null) return NotFound();
 
-        // Hapus file fisik
-        if (System.IO.File.Exists(dokumen.FilePath))
+        // Hapus file: di R2 untuk unggahan baru, di disk untuk unggahan lama
+        if (dokumen.FileUrl?.StartsWith("/api/FileUpload/file/") == true)
+        {
+            try { await _r2.DeleteAsync(dokumen.FilePath); }
+            catch (Exception ex) { Console.WriteLine($"[DokumenApproval] Gagal hapus file R2 {dokumen.FilePath}: {ex.Message}"); }
+        }
+        else if (System.IO.File.Exists(dokumen.FilePath))
+        {
             System.IO.File.Delete(dokumen.FilePath);
+        }
 
         _context.DokumenApprovals.Remove(dokumen);
         await _context.SaveChangesAsync();
