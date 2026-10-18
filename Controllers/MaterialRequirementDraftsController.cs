@@ -89,15 +89,17 @@ public class MaterialRequirementDraftsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? idKontrak)
     {
+        // Baris ikut dikirim supaya kartu daftar bisa menampilkan jumlah pekerjaan & material
         var query = _context.MaterialRequirementDrafts
             .Include(d => d.Kontrak).ThenInclude(k => k!.Vendor)
+            .Include(d => d.Lines)
             .AsQueryable();
 
         if (!string.IsNullOrEmpty(idKontrak))
             query = query.Where(d => d.IdKontrak == idKontrak);
 
         var drafts = await query.OrderByDescending(d => d.CreatedAt).ToListAsync();
-        return Ok(drafts.Select(d => ToDto(d)));
+        return Ok(drafts.Select(d => ToDto(d, includeLines: true)));
     }
 
     [HttpGet("{id}")]
