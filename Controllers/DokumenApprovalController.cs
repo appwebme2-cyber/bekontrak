@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RefineryContractAPI.Data;
 using RefineryContractAPI.DTOs;
 using RefineryContractAPI.Models;
+using RefineryContractAPI.Services;
 
 namespace RefineryContractAPI.Controllers;
 
@@ -14,9 +15,11 @@ public class DokumenApprovalController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _env;
+    private readonly PushNotifier _push;
 
-    public DokumenApprovalController(AppDbContext context, IWebHostEnvironment env)
+    public DokumenApprovalController(AppDbContext context, IWebHostEnvironment env, PushNotifier push)
     {
+        _push = push;
         _context = context;
         _env = env;
     }
@@ -150,6 +153,9 @@ public class DokumenApprovalController : ControllerBase
 
         _context.DokumenApprovals.Add(dokumen);
         await _context.SaveChangesAsync();
+
+        // Kabari penyetuju di RU kontrak ini lewat notifikasi HP (berjalan di latar belakang)
+        _push.DokumenBaru(idKontrak, namaDokumen);
 
         return Ok(new { message = "Dokumen berhasil diupload", idDokumen = dokumen.IdDokumen, fileUrl });
     }

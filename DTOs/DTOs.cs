@@ -758,6 +758,12 @@ public class ChatHistoryDto
     public string Content { get; set; } = string.Empty;
 }
 
+public class PushTokenDto
+{
+    public string Token { get; set; } = string.Empty;
+    public string? Platform { get; set; }
+}
+
 public class ChatPinDto
 {
     public string? Pin { get; set; }

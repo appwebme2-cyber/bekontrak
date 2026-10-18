@@ -535,6 +535,20 @@ public class AiCreditTopup
 }
 
 /// <summary>Satu percakapan chatbot milik seorang user.</summary>
+/// <summary>Token notifikasi push HP (Expo) milik seorang pengguna; satu pengguna bisa punya beberapa HP.</summary>
+public class PushToken
+{
+    [Key]
+    public string IdToken { get; set; } = Guid.NewGuid().ToString();
+    [Required]
+    public string IdUser { get; set; } = string.Empty;
+    [Required]
+    public string Token { get; set; } = string.Empty;
+    public string? Platform { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
 public class AiChatSession
 {
     [Key]

@@ -74,6 +74,11 @@ builder.Services.AddHttpContextAccessor();
 // RU yang berlaku per request (multi-RU); dipakai filter otomatis di AppDbContext
 builder.Services.AddScoped<ICurrentRu, CurrentRu>();
 builder.Services.AddSingleton<AiUsageTracker>();
+// Notifikasi push MAESTRO Mobile (Expo): kirim, penerima, dan ringkasan harian pagi
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<ExpoPushService>();
+builder.Services.AddSingleton<PushNotifier>();
+builder.Services.AddHostedService<PushDigestService>();
 builder.Services.AddSingleton<RolePermissionService>();
 builder.Services.AddSingleton<ChatReadOnlyDb>();
 builder.Services.AddScoped<ChatService>();
@@ -321,6 +326,30 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"[Startup] Table creation warning (ai_chat_usage): {ex.Message}");
+    }
+
+    try
+    {
+        // Token notifikasi push HP (MAESTRO Mobile) + catatan ringkasan harian yang sudah terkirim
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS push_token (
+                id_token TEXT PRIMARY KEY,
+                id_user TEXT NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                platform TEXT,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS ix_push_token_user ON push_token(id_user);
+            CREATE TABLE IF NOT EXISTS push_log (
+                kunci TEXT PRIMARY KEY,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Table creation warning (push_token/push_log): {ex.Message}");
     }
 
     try

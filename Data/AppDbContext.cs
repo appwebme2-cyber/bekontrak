@@ -113,6 +113,7 @@ public class AppDbContext : DbContext
     public DbSet<LogAkses> LogAkses { get; set; }
     public DbSet<KontrakFavorit> KontrakFavorits { get; set; }
     public DbSet<AiChatSession> AiChatSessions { get; set; }
+    public DbSet<PushToken> PushTokens { get; set; }
     public DbSet<AiUsageLog> AiUsageLogs { get; set; }
     public DbSet<AiCreditTopup> AiCreditTopups { get; set; }
     public DbSet<AiChatMessage> AiChatMessages { get; set; }
@@ -179,6 +180,15 @@ public class AppDbContext : DbContext
             e.Property(p => p.Catatan).HasColumnName("catatan");
             e.Property(p => p.CreatedBy).HasColumnName("created_by");
             e.Property(p => p.CreatedAt).HasColumnName("created_at");
+        });
+        modelBuilder.Entity<PushToken>().ToTable("push_token");
+        modelBuilder.Entity<PushToken>(e => {
+            e.Property(p => p.IdToken).HasColumnName("id_token");
+            e.Property(p => p.IdUser).HasColumnName("id_user");
+            e.Property(p => p.Token).HasColumnName("token");
+            e.Property(p => p.Platform).HasColumnName("platform");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+            e.Property(p => p.UpdatedAt).HasColumnName("updated_at");
         });
         modelBuilder.Entity<AiChatSession>().ToTable("ai_chat_session");
         modelBuilder.Entity<AiChatSession>(e => {
