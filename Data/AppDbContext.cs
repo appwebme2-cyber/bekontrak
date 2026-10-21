@@ -114,6 +114,7 @@ public class AppDbContext : DbContext
     public DbSet<KontrakFavorit> KontrakFavorits { get; set; }
     public DbSet<AiChatSession> AiChatSessions { get; set; }
     public DbSet<PushToken> PushTokens { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<AiUsageLog> AiUsageLogs { get; set; }
     public DbSet<AiCreditTopup> AiCreditTopups { get; set; }
     public DbSet<AiChatMessage> AiChatMessages { get; set; }
@@ -180,6 +181,18 @@ public class AppDbContext : DbContext
             e.Property(p => p.Catatan).HasColumnName("catatan");
             e.Property(p => p.CreatedBy).HasColumnName("created_by");
             e.Property(p => p.CreatedAt).HasColumnName("created_at");
+        });
+        modelBuilder.Entity<RefreshToken>().ToTable("refresh_token");
+        modelBuilder.Entity<RefreshToken>(e => {
+            e.HasKey(p => p.IdRefresh);
+            e.Property(p => p.IdRefresh).HasColumnName("id_refresh");
+            e.Property(p => p.IdUser).HasColumnName("id_user");
+            e.Property(p => p.TokenHash).HasColumnName("token_hash");
+            e.Property(p => p.Perangkat).HasColumnName("perangkat");
+            e.Property(p => p.CreatedAt).HasColumnName("created_at");
+            e.Property(p => p.ExpiresAt).HasColumnName("expires_at");
+            e.Property(p => p.LastUsedAt).HasColumnName("last_used_at");
+            e.Property(p => p.RevokedAt).HasColumnName("revoked_at");
         });
         modelBuilder.Entity<PushToken>().ToTable("push_token");
         modelBuilder.Entity<PushToken>(e => {

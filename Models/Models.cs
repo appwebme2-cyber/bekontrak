@@ -536,6 +536,25 @@ public class AiCreditTopup
 
 /// <summary>Satu percakapan chatbot milik seorang user.</summary>
 /// <summary>Token notifikasi push HP (Expo) milik seorang pengguna; satu pengguna bisa punya beberapa HP.</summary>
+/// <summary>
+/// Kunci perpanjangan login MAESTRO Mobile: aplikasi menukarnya dengan token baru saat token 8 jam habis,
+/// supaya pengguna tetap masuk sampai menekan Keluar. Yang disimpan hanya hash SHA-256-nya.
+/// </summary>
+public class RefreshToken
+{
+    [Key]
+    public string IdRefresh { get; set; } = Guid.NewGuid().ToString();
+    [Required]
+    public string IdUser { get; set; } = string.Empty;
+    [Required]
+    public string TokenHash { get; set; } = string.Empty;
+    public string? Perangkat { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+    public DateTime? RevokedAt { get; set; }
+}
+
 public class PushToken
 {
     [Key]

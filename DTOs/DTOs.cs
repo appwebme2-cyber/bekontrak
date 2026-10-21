@@ -5,6 +5,13 @@ public class LoginDto
 {
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    /// <summary>true dari MAESTRO Mobile: jawaban juga berisi refreshToken supaya tetap masuk sampai Keluar</summary>
+    public bool Mobile { get; set; }
+}
+
+public class RefreshTokenDto
+{
+    public string RefreshToken { get; set; } = string.Empty;
 }
 
 public class RegisterDto
@@ -24,6 +31,8 @@ public class AuthResponseDto
     public string Email { get; set; } = string.Empty;
     public string? FullName { get; set; }
     public string Role { get; set; } = string.Empty;
+    /// <summary>Hanya untuk login MAESTRO Mobile</summary>
+    public string? RefreshToken { get; set; }
 }
 
 public class SeedAdminDto

@@ -346,6 +346,20 @@ using (var scope = app.Services.CreateScope())
                 created_at TIMESTAMP NOT NULL DEFAULT NOW()
             );
         ");
+        // Kunci perpanjangan login MAESTRO Mobile (hanya hash yang disimpan)
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS refresh_token (
+                id_refresh TEXT PRIMARY KEY,
+                id_user TEXT NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                perangkat TEXT,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                expires_at TIMESTAMP NOT NULL,
+                last_used_at TIMESTAMP,
+                revoked_at TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS ix_refresh_token_user ON refresh_token(id_user);
+        ");
     }
     catch (Exception ex)
     {

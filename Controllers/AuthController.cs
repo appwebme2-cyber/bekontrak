@@ -9,6 +9,7 @@ using RefineryContractAPI.Services;
 using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace RefineryContractAPI.Controllers;
@@ -73,9 +74,86 @@ public class AuthController : ControllerBase
             Id = user.Id,
             Email = user.Email,
             FullName = user.FullName,
+            Role = user.Role,
+            RefreshToken = dto.Mobile ? await BuatRefreshTokenAsync(user.Id, "mobile") : null
+        });
+    }
+
+    // ==================== REFRESH (MAESTRO Mobile) ====================
+    // Tukar kunci perpanjangan dengan token baru. Masa berlaku kunci bergeser 90 hari setiap dipakai, jadi
+    // pengguna yang membuka aplikasi minimal sekali dalam 90 hari tidak perlu login ulang. Ditolak bila
+    // kunci sudah dicabut (Keluar / ganti password), kedaluwarsa, atau akunnya dinonaktifkan/dihapus.
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
+    {
+        var ditolak = Unauthorized(new { message = "Sesi berakhir. Silakan login kembali." });
+        if (string.IsNullOrWhiteSpace(dto.RefreshToken)) return ditolak;
+
+        var hash = HashRefreshToken(dto.RefreshToken);
+        var kunci = await _context.RefreshTokens.FirstOrDefaultAsync(r => r.TokenHash == hash);
+        if (kunci == null || kunci.RevokedAt != null || kunci.ExpiresAt <= DateTime.UtcNow) return ditolak;
+
+        var user = await _context.Profiles.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == kunci.IdUser);
+        if (user == null || !user.IsActive)
+        {
+            kunci.RevokedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return ditolak;
+        }
+
+        kunci.LastUsedAt = DateTime.UtcNow;
+        kunci.ExpiresAt = DateTime.UtcNow.Add(MasaRefreshToken);
+        await _context.SaveChangesAsync();
+
+        // Token baru dibuat dari data akun terkini (peran & RU ikut terbarui)
+        return Ok(new AuthResponseDto
+        {
+            Token = GenerateToken(user),
+            Id = user.Id,
+            Email = user.Email,
+            FullName = user.FullName,
             Role = user.Role
         });
     }
+
+    // Cabut kunci perpanjangan saat pengguna menekan Keluar di HP (berlaku walau token 8 jamnya sudah habis)
+    [HttpPost("refresh/revoke")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RevokeRefresh([FromBody] RefreshTokenDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.RefreshToken)) return NoContent();
+        var hash = HashRefreshToken(dto.RefreshToken);
+        await _context.RefreshTokens
+            .Where(r => r.TokenHash == hash && r.RevokedAt == null)
+            .ExecuteUpdateAsync(u => u.SetProperty(r => r.RevokedAt, DateTime.UtcNow));
+        return NoContent();
+    }
+
+    private static readonly TimeSpan MasaRefreshToken = TimeSpan.FromDays(90);
+
+    public static string HashRefreshToken(string token) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
+    private async Task<string> BuatRefreshTokenAsync(string idUser, string perangkat)
+    {
+        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)).Replace('+', '-').Replace('/', '_').TrimEnd('=');
+        _context.RefreshTokens.Add(new RefreshToken
+        {
+            IdUser = idUser,
+            TokenHash = HashRefreshToken(token),
+            Perangkat = perangkat,
+            ExpiresAt = DateTime.UtcNow.Add(MasaRefreshToken)
+        });
+        await _context.SaveChangesAsync();
+        return token;
+    }
+
+    /// <summary>Cabut semua kunci perpanjangan milik pengguna (mis. setelah ganti password): semua HP harus login ulang.</summary>
+    public static Task CabutSemuaRefreshTokenAsync(AppDbContext db, string idUser) =>
+        db.RefreshTokens
+            .Where(r => r.IdUser == idUser && r.RevokedAt == null)
+            .ExecuteUpdateAsync(u => u.SetProperty(r => r.RevokedAt, DateTime.UtcNow));
 
     // ==================== REGISTER (public) ====================
     // Self-register: role selalu 'user', isActive = false
@@ -253,6 +331,7 @@ public class AuthController : ControllerBase
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
         await _context.SaveChangesAsync();
+        await CabutSemuaRefreshTokenAsync(_context, user.Id);
 
         return Ok(new { message = "Password berhasil diubah" });
     }

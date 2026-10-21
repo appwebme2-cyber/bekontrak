@@ -60,6 +60,8 @@ public class ProfileController : ControllerBase
                 return BadRequest(new { message = "Password lama tidak sesuai" });
 
             profile.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            // Ganti password: HP yang masih masuk (MAESTRO Mobile) harus login ulang
+            await AuthController.CabutSemuaRefreshTokenAsync(_context, profile.Id);
         }
 
         await _context.SaveChangesAsync();
