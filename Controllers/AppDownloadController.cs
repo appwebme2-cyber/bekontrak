@@ -228,5 +228,4 @@ public class AppDownloadController : ControllerBase
 
         return new { tersedia = true, versi = info.Versi, ukuran = info.Ukuran, catatan = info.Catatan, diunggahPada = info.DiunggahPada };
     }
-    }
 }
