@@ -115,10 +115,95 @@ public class AppDownloadController : ControllerBase
             return StatusCode(500, new { message = $"Gagal menyimpan APK: {ex.Message}" });
         }
 
+        return Ok(await SimpanInfoAsync(versi, catatan, file.Length));
+    }
+
+    // Ambil APK langsung dari link unduhan EAS (expo.dev) oleh server, lalu simpan ke R2 (Super Admin).
+    // File tidak lewat koneksi pengunggah, jadi tidak gagal karena internet lambat. Link EAS hanya berlaku
+    // sementara, tapi salinannya di R2 tetap.
+    [HttpPost("android/dari-link")]
+    [Authorize(Roles = "admin")]
+    [SuperAdminOnly]
+    public async Task<IActionResult> DariLink([FromBody] DariLinkDto dto, [FromServices] IHttpClientFactory httpFactory)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Versi))
+            return BadRequest(new { message = "Versi wajib diisi, mis. 1.0.0." });
+        if (!Uri.TryCreate(dto.Url?.Trim(), UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps
+            || !(uri.Host.Equals("expo.dev", StringComparison.OrdinalIgnoreCase) || uri.Host.EndsWith(".expo.dev", StringComparison.OrdinalIgnoreCase)))
+            return BadRequest(new { message = "Link harus dari expo.dev (https://expo.dev/artifacts/...)." });
+        if (uri.AbsolutePath.Contains("/builds/", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Itu link halaman build. Salin link unduhan APK-nya (diawali https://expo.dev/artifacts/...)." });
+
+        var sementara = Path.GetTempFileName();
+        try
+        {
+            var http = httpFactory.CreateClient();
+            http.Timeout = TimeSpan.FromMinutes(5);
+            long ukuran;
+            using (var res = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead))
+            {
+                if (!res.IsSuccessStatusCode)
+                    return BadRequest(new { message = $"APK tidak bisa diambil dari link (HTTP {(int)res.StatusCode}). Link mungkin sudah kedaluwarsa; salin ulang dari expo.dev." });
+                if (res.Content.Headers.ContentLength > BatasUkuran)
+                    return BadRequest(new { message = "Ukuran APK maksimal 250 MB." });
+
+                await using var sumber = await res.Content.ReadAsStreamAsync();
+                await using var tujuan = System.IO.File.Create(sementara);
+                var buffer = new byte[81920];
+                ukuran = 0;
+                int n;
+                while ((n = await sumber.ReadAsync(buffer)) > 0)
+                {
+                    ukuran += n;
+                    if (ukuran > BatasUkuran) return BadRequest(new { message = "Ukuran APK maksimal 250 MB." });
+                    await tujuan.WriteAsync(buffer.AsMemory(0, n));
+                }
+            }
+
+            // File APK (ZIP) selalu diawali "PK"; halaman web/HTML ditolak
+            await using (var cek = System.IO.File.OpenRead(sementara))
+            {
+                var awal = new byte[2];
+                if (await cek.ReadAsync(awal.AsMemory(0, 2)) < 2 || awal[0] != (byte)'P' || awal[1] != (byte)'K')
+                    return BadRequest(new { message = "Link tersebut bukan file APK. Salin link unduhan APK (https://expo.dev/artifacts/...)." });
+            }
+
+            await using (var stream = System.IO.File.OpenRead(sementara))
+                await _r2.UploadAsync(stream, KunciR2, "application/vnd.android.package-archive");
+
+            return Ok(await SimpanInfoAsync(dto.Versi, dto.Catatan, ukuran));
+        }
+        catch (TaskCanceledException)
+        {
+            return StatusCode(504, new { message = "Mengambil APK dari expo.dev terlalu lama. Coba lagi." });
+        }
+        catch (HttpRequestException ex)
+        {
+            return BadRequest(new { message = $"Tidak bisa menghubungi expo.dev: {ex.Message}" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Gagal menyimpan APK: {ex.Message}" });
+        }
+        finally
+        {
+            try { System.IO.File.Delete(sementara); } catch { /* file sementara */ }
+        }
+    }
+
+    public class DariLinkDto
+    {
+        public string? Url { get; set; }
+        public string? Versi { get; set; }
+        public string? Catatan { get; set; }
+    }
+
+    private async Task<object> SimpanInfoAsync(string versi, string? catatan, long ukuran)
+    {
         var info = new InfoApk
         {
             Versi = versi.Trim(),
-            Ukuran = file.Length,
+            Ukuran = ukuran,
             Catatan = string.IsNullOrWhiteSpace(catatan) ? null : catatan.Trim(),
             DiunggahPada = DateTime.UtcNow,
             DiunggahOleh = User.FindFirstValue(ClaimTypes.Email) ?? User.Identity?.Name,
@@ -141,6 +226,7 @@ public class AppDownloadController : ControllerBase
         }
         await _context.SaveChangesAsync();
 
-        return Ok(new { tersedia = true, versi = info.Versi, ukuran = info.Ukuran, catatan = info.Catatan, diunggahPada = info.DiunggahPada });
+        return new { tersedia = true, versi = info.Versi, ukuran = info.Ukuran, catatan = info.Catatan, diunggahPada = info.DiunggahPada };
+    }
     }
 }
