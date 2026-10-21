@@ -45,8 +45,10 @@ public class AuthController : ControllerBase
             return StatusCode(429, new { message = $"Terlalu banyak percobaan login gagal. Coba lagi dalam {minutes} menit." });
         }
 
+        // Email tidak membedakan huruf besar/kecil & spasi di tepi diabaikan (isian HP sering berbeda kapitalisasi)
+        var email = (dto.Email ?? string.Empty).Trim().ToLower();
         var user = await _context.Profiles
-            .FirstOrDefaultAsync(u => u.Email == dto.Email);
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
         {
