@@ -778,12 +778,6 @@ public class ChatPinDto
     public string? Pin { get; set; }
 }
 
-public class ChatSuaraDto
-{
-    /// <summary>Teks yang dibacakan (jawaban Asisten atau ucapan saat menunggu)</summary>
-    public string? Teks { get; set; }
-}
-
 public class ChatContextDto
 {
     public string? Path { get; set; }
