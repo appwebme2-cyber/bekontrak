@@ -181,6 +181,7 @@ public class KontrakDto
     public int? TanggalMpa { get; set; }
     public int? MasaPemeliharaanHari { get; set; }
     public int? JumlahTagihan { get; set; }
+    public decimal? TotalNilaiTagihan { get; set; } // total nilai semua tagihan kontrak ini
     public VendorDto? Vendor { get; set; }
     public string? IdRu { get; set; } // multi-RU: RU pemilik kontrak
 }

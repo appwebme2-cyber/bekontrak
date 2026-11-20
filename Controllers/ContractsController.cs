@@ -40,6 +40,7 @@ public class ContractsController : ControllerBase
                 .Select(k => MapToDto(k))
                 .ToListAsync();
 
+            await IsiTotalTagihanAsync(vendorContracts);
             return Ok(vendorContracts);
         }
 
@@ -50,7 +51,31 @@ public class ContractsController : ControllerBase
             .Select(k => MapToDto(k))
             .ToListAsync();
 
+        await IsiTotalTagihanAsync(contracts);
         return Ok(contracts);
+    }
+
+    // Isi total nilai & jumlah tagihan per kontrak (satu query GROUP BY), supaya
+    // daftar kontrak bisa menampilkan nilai tertagih + persentasenya tanpa harus
+    // membuka detail kontrak satu per satu. Tagihan tidak punya filter RU sendiri,
+    // jadi dibatasi ke ID kontrak yang memang ada di daftar ini.
+    private async Task IsiTotalTagihanAsync(List<KontrakDto> contracts)
+    {
+        if (contracts.Count == 0) return;
+
+        var ids = contracts.Select(c => c.IdKontrak).ToList();
+        var ringkasan = await _context.Tagihans
+            .Where(t => ids.Contains(t.IdKontrak))
+            .GroupBy(t => t.IdKontrak)
+            .Select(g => new { IdKontrak = g.Key, Total = g.Sum(t => t.NilaiTagihan), Jumlah = g.Count() })
+            .ToDictionaryAsync(x => x.IdKontrak);
+
+        foreach (var c in contracts)
+        {
+            var ada = ringkasan.TryGetValue(c.IdKontrak, out var r);
+            c.TotalNilaiTagihan = ada ? r!.Total : 0;
+            c.JumlahTagihan = ada ? r!.Jumlah : 0;
+        }
     }
 
     [HttpGet("{id}")]
